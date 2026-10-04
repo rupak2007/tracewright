@@ -175,3 +175,34 @@ def test_same_seed_gives_same_traffic_shape(ports: Ports, monkeypatch: pytest.Mo
     assert names_for(7) == names_for(7)
     assert names_for(7) != names_for(8)
     assert all(n.endswith(".cdn.example.test") for n in names_for(7))
+
+
+def test_repeatable_scenarios_recur_every_every_s_until_the_duration_is_used(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[float] = []
+    clock = {"t": 0.0}
+    ctx = make_ctx(Ports(), duration_s=100.0, every_s=30)
+    ctx.monotonic = lambda: clock["t"]
+    ctx.sleep = lambda seconds: clock.__setitem__("t", clock["t"] + seconds)
+    fake = scenarios.Scenario("fake", lambda c: calls.append(clock["t"]), "NTP", repeatable=True)
+    scenarios._run_body(fake, ctx)
+    assert calls == [0.0, 30.0, 60.0, 90.0]  # four cycles inside 100 s, then stop
+
+
+def test_one_shot_scenarios_ignore_every_s_and_repeatable_ones_default_to_once() -> None:
+    calls: list[int] = []
+    ctx = make_ctx(Ports(), duration_s=100.0, every_s=10)
+    scenarios._run_body(scenarios.Scenario("x", lambda c: calls.append(1), "NTP"), ctx)
+    assert calls == [1]  # not repeatable: every_s is ignored
+    once = make_ctx(Ports(), duration_s=100.0)
+    scenarios._run_body(
+        scenarios.Scenario("y", lambda c: calls.append(2), "NTP", repeatable=True), once
+    )
+    assert calls == [1, 2]  # repeatable but no every_s: exactly one run
+
+
+def test_which_scenarios_are_repeatable() -> None:
+    assert {n for n, s in SCENARIOS.items() if s.repeatable} == {
+        "rsync_backup", "cloud_sync_upload", "package_update", "cdn_browsing",
+    }  # fmt: skip

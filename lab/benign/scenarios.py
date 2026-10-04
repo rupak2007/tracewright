@@ -198,6 +198,7 @@ class Scenario:
     run: Callable[[Context], None]
     cls: str | None  # hard-negative class label; None = unlabelled background
     external: bool = False  # True when the labelled target is the external sink
+    repeatable: bool = False  # one-shot scenario that may be repeated every `every_s` seconds
 
 
 SCENARIOS: dict[str, Scenario] = {
@@ -205,23 +206,39 @@ SCENARIOS: dict[str, Scenario] = {
     for s in (
         Scenario("ntp", ntp, "NTP"),
         Scenario("monitoring_heartbeat", monitoring_heartbeat, "MONITORING_HEARTBEAT"),
-        Scenario("rsync_backup", rsync_backup, "RSYNC_BACKUP"),
-        Scenario("cloud_sync_upload", cloud_sync_upload, "CLOUD_SYNC_UPLOAD", external=True),
-        Scenario("package_update", package_update, "PACKAGE_UPDATE"),
-        Scenario("cdn_browsing", cdn_browsing, "CDN_BROWSING"),
+        Scenario("rsync_backup", rsync_backup, "RSYNC_BACKUP", repeatable=True),
+        Scenario(
+            "cloud_sync_upload",
+            cloud_sync_upload,
+            "CLOUD_SYNC_UPLOAD",
+            external=True,
+            repeatable=True,
+        ),
+        Scenario("package_update", package_update, "PACKAGE_UPDATE", repeatable=True),
+        Scenario("cdn_browsing", cdn_browsing, "CDN_BROWSING", repeatable=True),
         Scenario("video_streaming", video_streaming, "VIDEO_STREAMING"),
         Scenario("background_browsing", background_browsing, None),
     )
 }
 
 
+def _run_body(scenario: Scenario, ctx: Context) -> None:
+    """Run once, or (repeatable scenarios given `every_s`) repeat every `every_s` seconds until the
+    duration is used up, like a recurring backup or sync agent."""
+    every = ctx.params.get("every_s")
+    if every is None or not scenario.repeatable:
+        scenario.run(ctx)
+        return
+    _periodic(ctx, float(every), lambda: scenario.run(ctx))
+
+
 def run_scenario(name: str, ctx: Context, labeler: Labeler | None) -> None:
     """Run one scenario; labelled ones are wrapped in a hard_negative episode."""
     scenario = SCENARIOS[name]
     if scenario.cls is None or labeler is None:
-        scenario.run(ctx)
+        _run_body(scenario, ctx)
         return
     target = ctx.external_host if scenario.external else ctx.internal_host
     params = {"duration_s": ctx.duration_s, **ctx.params}
     with labeler.episode("hard_negative", scenario.cls, ctx.actor, [target], ACTOR_TOOL, params):
-        scenario.run(ctx)
+        _run_body(scenario, ctx)

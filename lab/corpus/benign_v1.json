@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "description": "Benign lab corpus v1: six real recordings of legitimate hard-negative traffic, two per stratum so that, after a run-level 50/50 split, every hard-negative class appears in both dev and test. Seeds and parameters differ between the two runs of a stratum (no identical recipes).",
+  "network_config": "network.lab.yaml",
+  "runs": [
+    {"run_id": "b01", "seed": 1100, "plan": [
+      "client1:ntp:2700:{\"interval_s\":64}",
+      "client2:monitoring_heartbeat:2700:{\"interval_s\":30}",
+      "client3:cdn_browsing:2700:{\"hosts\":150,\"pause_s\":0.1,\"every_s\":120}"]},
+    {"run_id": "b02", "seed": 1200, "plan": [
+      "client1:ntp:2700:{\"interval_s\":128}",
+      "client2:monitoring_heartbeat:2700:{\"interval_s\":45}",
+      "client3:cdn_browsing:2700:{\"hosts\":220,\"pause_s\":0.2,\"every_s\":180}"]},
+    {"run_id": "b03", "seed": 1300, "plan": [
+      "client1:rsync_backup:2700:{\"mb\":20,\"every_s\":600}",
+      "client2:package_update:2700:{\"files\":30,\"every_s\":300}",
+      "client3:video_streaming:2700:{\"kbps\":400}"]},
+    {"run_id": "b04", "seed": 1400, "plan": [
+      "client1:rsync_backup:2700:{\"mb\":40,\"every_s\":900}",
+      "client2:package_update:2700:{\"files\":50,\"every_s\":420}",
+      "client3:video_streaming:2700:{\"kbps\":600}"]},
+    {"run_id": "b05", "seed": 1500, "plan": [
+      "client1:cloud_sync_upload:2700:{\"mb\":60,\"every_s\":900}",
+      "client2:ntp:2700:{\"interval_s\":64}",
+      "client3:rsync_backup:2700:{\"mb\":10,\"every_s\":450}"]},
+    {"run_id": "b06", "seed": 1600, "plan": [
+      "client1:cloud_sync_upload:2700:{\"mb\":80,\"every_s\":1200}",
+      "client2:ntp:2700:{\"interval_s\":96}",
+      "client3:rsync_backup:2700:{\"mb\":25,\"every_s\":720}"]}
+  ]
+}
