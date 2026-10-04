@@ -1,4 +1,5 @@
 import json
+import zlib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,8 @@ def write_run(
     holdout: bool = False,
     duration_s: float = 600.0,
     verified: bool = True,
+    seed: int | None = None,
+    scenarios: tuple[dict[str, Any], ...] = (),
 ) -> None:
     """Write a SYNTHETIC run record (not a real capture; no PCAP exists for it).
 
@@ -40,11 +43,11 @@ def write_run(
         capture_bytes=1,
         start="2026-11-02T10:00:00.000Z",
         end="2026-11-02T10:10:00.000Z",
-        seed=1,
+        seed=seed if seed is not None else zlib.crc32(run_id.encode()),  # distinct per run
         holdout=holdout,
         benign_only=benign_only,
         duration_s=duration_s,
-        scenarios=(),
+        scenarios=scenarios,
         network_config="network.lab.yaml",
     )
     (d / "run.json").write_text(meta.to_json())
@@ -369,3 +372,99 @@ def test_hidden_staging_directories_are_ignored(runs_dir: Path) -> None:
 def test_the_shipped_manifest_is_still_empty_until_real_validated_captures_exist() -> None:
     assert splits.load_manifest()["assigned"] == {}
     assert not [p for p in splits.RUNS_DIR.iterdir() if p.is_dir()]  # no run records committed
+
+
+# ---------------------------------------------- leakage guard and requirement sources
+
+
+PLAN = ({"client": "client1", "scenario": "ntp", "duration_s": 20.0, "params": {"interval_s": 5}},)
+
+
+def test_runs_with_an_identical_seed_and_plan_are_never_split_apart(runs_dir: Path) -> None:
+    for run_id in ("a1", "a2", "a3"):
+        write_run(runs_dir, run_id, [("hard_negative", "NTP", "")], seed=9, scenarios=PLAN)
+    runs = splits.load_runs(runs_dir)
+    created = splits.assign_new({}, runs, seed=1)
+    assert set(created) == {"a1"}  # a2 and a3 repeat a1's recipe and are withheld
+    reasons = dict(splits.pending_runs(manifest(created), runs))
+    assert "same seed and scenario plan as a1" in reasons["a2"] and "a3" in reasons
+
+
+def test_a_changed_seed_or_plan_is_a_different_recipe(runs_dir: Path) -> None:
+    write_run(runs_dir, "a1", [("hard_negative", "NTP", "")], seed=9, scenarios=PLAN)
+    write_run(runs_dir, "a2", [("hard_negative", "NTP", "")], seed=10, scenarios=PLAN)
+    other = ({**PLAN[0], "params": {"interval_s": 7}},)
+    write_run(runs_dir, "a3", [("hard_negative", "NTP", "")], seed=9, scenarios=other)
+    runs = splits.load_runs(runs_dir)
+    assert set(splits.assign_new({}, runs, seed=1)) == {"a1", "a2", "a3"}
+
+
+def test_a_later_run_repeating_an_assigned_recipe_is_withheld(runs_dir: Path) -> None:
+    write_run(runs_dir, "a1", [("hard_negative", "NTP", "")], seed=9, scenarios=PLAN)
+    first = splits.assign_new({}, splits.load_runs(runs_dir), seed=1)
+    write_run(runs_dir, "z9", [("hard_negative", "NTP", "")], seed=9, scenarios=PLAN)
+    runs = splits.load_runs(runs_dir)
+    assert splits.assign_new(first, runs, seed=1) == {}
+    assert dict(splits.pending_runs(manifest(first), runs))["z9"].startswith("same seed")
+
+
+def test_validate_flags_duplicate_recipes_that_slipped_into_the_manifest(runs_dir: Path) -> None:
+    write_run(runs_dir, "a1", [("hard_negative", "NTP", "")], seed=9, scenarios=PLAN)
+    write_run(runs_dir, "a2", [("hard_negative", "NTP", "")], seed=9, scenarios=PLAN)
+    runs = splits.load_runs(runs_dir)
+    forced = {rid: {**splits.assign_new({}, runs, 1)["a1"]} for rid in ("a1", "a2")}
+    forced["a2"] |= {
+        "run_json_sha256": runs["a2"].run_json_sha256,
+        "labels_sha256": runs["a2"].labels_sha256,
+    }
+    problems = splits.validate(manifest(forced), runs)
+    assert any("a2: same seed and scenario plan as a1" in p for p in problems)
+
+
+def test_external_runs_have_no_recipe_and_are_never_treated_as_duplicates() -> None:
+    from tests.lab_helpers import valid_submission
+
+    meta = RunMeta(
+        run_id="e1",
+        capture_sha256="ab" * 32,
+        capture_bytes=1,
+        start="2026-11-02T10:00:00.000Z",
+        end="2026-11-02T10:10:00.000Z",
+        seed=None,
+        holdout=False,
+        benign_only=False,
+        duration_s=600.0,
+        scenarios=(),
+        network_config="network.lab.yaml",
+        origin="external",
+        clients=({"id": "c1", "ip": "172.20.0.101"},),
+        provenance=valid_submission()["provenance"],
+    )
+    assert splits.recipe_key(meta) is None
+
+
+@pytest.mark.parametrize(
+    ("name", "source"),
+    [
+        ("attack SCAN episodes (dev)", splits.SOURCE_EXTERNAL),
+        ("DNSTUN tool iodine (test), tool-held-out", splits.SOURCE_EXTERNAL),
+        ("LAB-HOLDOUT families captured", splits.SOURCE_EXTERNAL),
+        ("LAB-HOLDOUT test captures", splits.SOURCE_EXTERNAL),
+        ("hard negative NTP in both splits", splits.SOURCE_LAB),
+        ("benign-only capture hours", splits.SOURCE_LAB),
+        ("benign-only runs (dev)", splits.SOURCE_LAB),
+        ("hard negative AUTOMATION_SSH in both splits", splits.SOURCE_SSH),
+    ],
+)
+def test_requirement_sources(name: str, source: str) -> None:
+    assert splits.requirement_source(name) == source
+
+
+def test_report_partitions_all_requirements_by_source_exactly_as_analysed() -> None:
+    reqs = splits.corpus_report(manifest(), {})
+    counts = {
+        s: sum(1 for r in reqs if r.source == s)
+        for s in (splits.SOURCE_LAB, splits.SOURCE_SSH, splits.SOURCE_EXTERNAL)
+    }
+    assert counts == {splits.SOURCE_LAB: 10, splits.SOURCE_SSH: 1, splits.SOURCE_EXTERNAL: 16}
+    assert sum(counts.values()) == len(reqs) == 27

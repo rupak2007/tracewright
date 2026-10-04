@@ -25,6 +25,12 @@ jobs:
       - run: uv run ruff format --check . ../lab ../eval
       - run: uv run mypy
       - run: uv run pytest
+      - name: Corpus integrity (manifest immutability, hashes, provenance, eligibility)
+        working-directory: .
+        run: uv run --project backend python -m eval.splits validate --against-git
+      - name: Corpus requirement report (informational; unmet items stay unmet)
+        working-directory: .
+        run: uv run --project backend python -m eval.splits report
 
   docker:
     name: images build, zeek pinned, worker sandbox

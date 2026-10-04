@@ -16,6 +16,7 @@ Rules enforced here, not just documented:
 
 import argparse
 import hashlib
+import json
 import subprocess  # fixed argv, shell=False
 import sys
 from collections.abc import Mapping, Sequence
@@ -102,17 +103,64 @@ def _tie_break(seed: int, run_id: str) -> int:
     return hashlib.sha256(f"{seed}:{run_id}".encode()).digest()[0] % 2
 
 
+def recipe_key(meta: RunMeta) -> str | None:
+    """Identity of a lab-runner run's traffic recipe (seed + scenario plan). Two runs with the same
+    recipe produce near-identical traffic, so they must never sit in different splits.
+    External runs have no recipe (no seed) and return None."""
+    if meta.origin != "lab_runner" or meta.seed is None:
+        return None
+    plan = sorted(
+        json.dumps(
+            {k: s.get(k) for k in ("client", "scenario", "duration_s", "params")}, sort_keys=True
+        )
+        for s in meta.scenarios
+    )
+    return json.dumps([meta.seed, plan])
+
+
+def recipe_duplicates(
+    runs: Mapping[str, LoadedRun], run_ids: Sequence[str], seen: Mapping[str, str] | None = None
+) -> dict[str, str]:
+    """Map each run to the earlier run (or one in `seen`) that has an identical recipe."""
+    first: dict[str, str] = dict(seen or {})
+    duplicates: dict[str, str] = {}
+    for run_id in sorted(run_ids):
+        key = recipe_key(runs[run_id].meta)
+        if key is None:
+            continue
+        if key in first:
+            duplicates[run_id] = first[key]
+        else:
+            first[key] = run_id
+    return duplicates
+
+
+def _assigned_recipes(
+    existing: Mapping[str, Mapping[str, str]], runs: Mapping[str, LoadedRun]
+) -> dict[str, str]:
+    seen: dict[str, str] = {}
+    for run_id in sorted(existing):
+        key = recipe_key(runs[run_id].meta) if run_id in runs else None
+        if key is not None:
+            seen.setdefault(key, run_id)
+    return seen
+
+
 def assign_new(
     existing: Mapping[str, Mapping[str, str]], runs: Mapping[str, LoadedRun], seed: int
 ) -> dict[str, dict[str, str]]:
     """Return entries for ELIGIBLE (verified) runs that have none yet. Existing entries are never
-    touched, and a run that has not passed verification is never assigned."""
+    touched; a run that has not passed verification is never assigned; and a lab-runner run whose
+    seed + scenario plan repeats an already-assigned (or earlier) run is withheld, because identical
+    recipes in different splits would leak."""
     counts: dict[str, dict[str, int]] = {}
     for entry in existing.values():
         counts.setdefault(entry["stratum"], dict.fromkeys(SPLIT_NAMES, 0))[entry["split"]] += 1
     created: dict[str, dict[str, str]] = {}
+    candidates = [run_id for run_id, r in runs.items() if run_id not in existing and r.eligible]
+    blocked = recipe_duplicates(runs, candidates, _assigned_recipes(existing, runs))
     pending = sorted(
-        (stratum(r), run_id) for run_id, r in runs.items() if run_id not in existing and r.eligible
+        (stratum(runs[run_id]), run_id) for run_id in candidates if run_id not in blocked
     )
     for run_stratum, run_id in pending:
         tally = counts.setdefault(run_stratum, dict.fromkeys(SPLIT_NAMES, 0))
@@ -192,6 +240,11 @@ def validate(
                 path = captures_dir / run_id / name
                 if path.exists() and sha256_file(path) != run.meta.capture_sha256:
                     problems.append(f"{run_id}: capture file does not match its recorded SHA-256")
+    in_runs = [run_id for run_id in assigned if run_id in runs]
+    for run_id, other in recipe_duplicates(runs, in_runs).items():
+        problems.append(
+            f"{run_id}: same seed and scenario plan as {other} (would leak across splits)"
+        )
     return problems
 
 
@@ -200,11 +253,18 @@ def pending_runs(
 ) -> list[tuple[str, str]]:
     """Registered runs that hold no assignment and are not eligible, with the reason why."""
     assigned = manifest["assigned"]
-    return [
+    waiting = [
         (run_id, run.eligibility_reason)
         for run_id, run in sorted(runs.items())
         if run_id not in assigned and not run.eligible
     ]
+    eligible = [run_id for run_id, run in runs.items() if run_id not in assigned and run.eligible]
+    blocked = recipe_duplicates(runs, eligible, _assigned_recipes(assigned, runs))
+    waiting += [
+        (run_id, f"same seed and scenario plan as {other}; change the seed or plan")
+        for run_id, other in sorted(blocked.items())
+    ]
+    return waiting
 
 
 @dataclass(frozen=True)
@@ -213,6 +273,26 @@ class Requirement:
     required: str
     actual: str
     met: bool
+
+    @property
+    def source(self) -> str:
+        """Where the data for this requirement can legitimately come from."""
+        return requirement_source(self.name)
+
+
+SOURCE_LAB = "benign lab runner"
+SOURCE_EXTERNAL = "externally supplied capture"
+SOURCE_SSH = "new benign scenario (not yet written) or external capture"
+
+
+def requirement_source(name: str) -> str:
+    """Classify a requirement by what could satisfy it. The benign lab runner cannot produce attack
+    or held-out traffic, so those always depend on externally supplied, verified captures."""
+    if name.startswith("hard negative AUTOMATION_SSH"):
+        return SOURCE_SSH
+    if name.startswith(("hard negative", "benign-only")):
+        return SOURCE_LAB
+    return SOURCE_EXTERNAL
 
 
 def corpus_report(manifest: Mapping[str, Any], runs: Mapping[str, LoadedRun]) -> list[Requirement]:
@@ -357,6 +437,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     met = len(requirements) - len(unmet)
     print()
     print(f"{met}/{len(requirements)} requirements met; {len(unmet)} unmet")
+    for source in (SOURCE_LAB, SOURCE_SSH, SOURCE_EXTERNAL):
+        group = [r for r in requirements if r.source == source]
+        missing = sum(1 for r in group if not r.met)
+        print(f"  unmet {missing}/{len(group)} that depend on: {source}")
     return 1 if (args.require_complete and unmet) else 0
 
 

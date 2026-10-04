@@ -53,3 +53,59 @@ python -m eval.splits report
 
 | Lab network config | `config/network.lab.yaml` (172.20.0.0/24 internal, 172.21.0.0/24 external) |
 |---|---|
+
+## Corpus source assessment (2026-10-04)
+
+Question: which unmet P2 requirements can which source satisfy? `python -m eval.splits report` prints the
+same partition (27 unmet: 10 / 1 / 16 by source below). Nothing was downloaded for this assessment; the
+CICIDS2017 facts below come from the dataset's own public description page
+(https://www.unb.ca/cic/datasets/ids-2017.html), read on this date.
+
+### Requirements by what can satisfy them
+
+| Source | Requirements (all currently unmet) | Count |
+|---|---|---|
+| Existing benign lab runner (real recordings, no new code) | hard negatives `RSYNC_BACKUP`, `PACKAGE_UPDATE`, `NTP`, `MONITORING_HEARTBEAT`, `CLOUD_SYNC_UPLOAD`, `CDN_BROWSING`, `VIDEO_STREAMING` each present in both `dev` and `test`; benign-only runs in `dev` and in `test`; benign-only capture >= 4 h | 10 |
+| A new *benign* scenario (not written) or an external capture | hard negative `AUTOMATION_SSH` in both splits | 1 |
+| Externally supplied, verified captures only | `SCAN`, `BRUTE`, `DNSTUN`, `BEACON`, `EXFIL`: >= 4 episodes in `dev` and >= 4 in `test` (10 rows); `DNSTUN` tools `iodine` and `dnscat2` each in both splits (4 rows); LAB-HOLDOUT: >= 3 families captured; >= 8 LAB-HOLDOUT test captures | 16 |
+
+The 10 benign-lab requirements are mechanically satisfiable but need **real wall-clock recording** (>= 4 h in
+total) and, to avoid leakage, **distinct seeds and parameter plans for runs that land in different splits**
+(enforced: `eval.splits` withholds a run whose seed + scenario plan repeats an assigned run). They have not
+been recorded; they are not satisfied by the smoke runs, which were never promoted.
+
+### CICIDS2017 (the only public dataset the project documents name)
+
+The plan lists downloading it in P2 (`docs/plan.md` P2 tasks), but it is **not** part of the P2 definition of
+done (`docs/instruction.md` §8), and `docs/PRD.md` §17 makes CIC-ATTACK "secondary... never the headline".
+Findings from the dataset page:
+
+| Question | Finding |
+|---|---|
+| PCAPs available? | Yes, per day (Mon 3 Jul - Fri 7 Jul 2017), plus CICFlowMeter CSVs labelled by time, IPs, ports, protocol |
+| Labels map to Tracewright classes? | Partly. Tuesday FTP-Patator and SSH-Patator ~ `BRUTE` (one window each, 9:20-10:20 and 14:00-15:00). Friday PortScan ~ `SCAN` (many short windows inside one day). Friday Ares botnet ~ `BEACON` (one 10:02-11:02 window; not the same behaviour as a periodic-interval sweep). Wednesday slowloris (9:47-10:10) matches a LAB-HOLDOUT family but is one window. **No** DNS tunnelling, **no** exfiltration class, **no** ICMP tunnelling, SMB/RPC enumeration or non-standard-port reverse shell |
+| Enough episodes per class and split? | **No.** Each attack type has roughly one documented window per day, so >= 4 `dev` + >= 4 `test` independent episodes per class cannot come from it |
+| Can the split protocol hold? | **No for per-class counts.** Splits are by capture and `eval/PROTOCOL.md` §4 forbids slicing one capture across splits; each day is a single capture, so each day goes wholly to one split. Monday (the benign day) therefore cannot provide benign data to both `dev` and `test` |
+| Provenance recordable? | Yes (source URL, file, SHA-256, slice commands); the page documents victim/attacker addresses and NAT (flows traverse a firewall), so ground truth by IP needs `lab.verify_run` to confirm it against what Zeek actually sees |
+| Timestamps / flow evidence sufficient? | Window times are given as local clock times without a stated zone, and the dataset has known labelling issues (PRD §16). Not established until a capture is analysed; `lab.verify_run` would reject labels that do not match the capture |
+| Leakage risk | A given day cannot be both tuned on and tested on. Tuning only on data that is later reported on, within a single capture, is the failure the protocol forbids |
+
+Conclusion: CICIDS2017 can contribute **only** to the secondary evaluations the PRD already assigns it
+(BENIGN false-positive rate from Monday; CIC-ATTACK sanity checks, reported separately). It satisfies **none**
+of the 27 unmet P2 requirements, and it was deliberately deferred (disk: ~39 GB free; Monday is ~10 GB).
+Fetching it should wait until a measured result (P3) actually needs it, and needs explicit approval of each
+file (name, source, size). The evaluation targets and protocol are unchanged.
+
+### What the project needs from outside the repository
+
+Real captures, supplied through `lab/README.md` ("Supplying an externally produced capture"):
+
+* for each of `SCAN`, `BRUTE`, `DNSTUN` (both `iodine` and `dnscat2` represented in both splits),
+  `BEACON`, `EXFIL`: enough independent runs that, after a 50/50 run-level split, each of `dev` and `test`
+  holds >= 4 labelled episodes of that class, with different parameters between runs that will land in
+  different splits;
+* for LAB-HOLDOUT (`holdout: true`): runs of at least 3 of `ICMP_TUNNEL`, `SLOWLORIS`, `SMB_RPC_ENUM`,
+  `REVERSE_SHELL`, totalling >= 8 captures that end up in `test` (so about >= 16 runs after splitting);
+* for `AUTOMATION_SSH`: runs in both splits (or a new benign scenario added to the lab runner first);
+* each as `capture.pcap|pcapng` + `labels.jsonl` + `submission.json` with full provenance, produced in an
+  isolated environment with no real user data.
