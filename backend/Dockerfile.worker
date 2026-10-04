@@ -1,0 +1,46 @@
+# Worker image: the ONLY place capture bytes are parsed (Zeek, tcpdump, editcap, capinfos).
+# Base: pinned Zeek LTS (Debian 13 / Python 3.13). Pin by tag AND digest (SEC-10).
+# Runs non-root; compose adds read-only FS, cap_drop ALL, no-new-privileges and an egress-less network.
+FROM zeek/zeek:9.0.0@sha256:70733f4e540ba1608e37e00c6a93d009f79734262c9ec2ba09d90aa9abc16de5
+
+ARG ZEEK_VERSION=9.0.0
+ARG UV_VERSION=0.12.23
+ARG UID=10001
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    ZEEK_EXPECTED_VERSION=${ZEEK_VERSION} \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_PYTHON=/usr/bin/python3 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_LINK_MODE=copy \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    PATH="/opt/venv/bin:/usr/local/zeek/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# editcap/capinfos ship in wireshark-common on Debian.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 python3-venv tcpdump wireshark-common \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --gid ${UID} tracewright \
+ && useradd --uid ${UID} --gid ${UID} --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin tracewright \
+ && mkdir -p /data/uploads /data/artifacts \
+ && chown ${UID}:${UID} /data/uploads /data/artifacts
+
+WORKDIR /app
+
+# Locked, reproducible dependency install (runtime deps only).
+COPY pyproject.toml uv.lock ./
+RUN python3 -m venv /opt/uv \
+ && /opt/uv/bin/pip install --no-cache-dir uv==${UV_VERSION} \
+ && /opt/uv/bin/uv sync --frozen --no-dev --no-install-project \
+ && rm -rf /root/.cache
+
+COPY app ./app
+
+USER ${UID}:${UID}
+
+# The Zeek base image defines no entrypoint; keep it that way so
+# `docker compose run worker zeek --version` runs the command directly.
+ENTRYPOINT []
+CMD ["python", "-m", "app.worker.main"]

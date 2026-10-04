@@ -1,0 +1,77 @@
+# Tracewright stack (architecture §18). `web` (P7) and `ollama` (P8, profile `llm`) are added with their phases.
+# Trust boundary: untrusted capture bytes are parsed only in `worker`, which sits on an
+# `internal: true` network (no egress) with a read-only filesystem and no capabilities.
+
+networks:
+  internal:
+    internal: true
+  edge: {}
+
+volumes:
+  pgdata: {}
+  uploads: {}
+  artifacts: {}
+
+services:
+  db:
+    image: postgres:16.15@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    networks: [internal]
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    networks: [internal] # no egress
+    user: "10001:10001"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 6g
+    cpus: 4
+    pids_limit: 256
+    volumes:
+      - uploads:/data/uploads:ro
+      - artifacts:/data/artifacts
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.api
+    networks: [internal, edge]
+    user: "10001:10001"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - uploads:/data/uploads
+      - artifacts:/data/artifacts:ro
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: on-failure

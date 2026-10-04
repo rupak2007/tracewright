@@ -1,0 +1,37 @@
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Captures, Zeek logs, derived data, models (never committed; see instruction.md §6)
+data/
+*.pcap
+*.pcapng
+*.pcap.gz
+artifacts/
+uploads/
+*.parquet
+*.pkl
+*.joblib
+*.log
+!eval/results/**/*.log
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
