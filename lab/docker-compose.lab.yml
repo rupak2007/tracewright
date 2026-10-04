@@ -1,0 +1,85 @@
+# Lab topology skeleton (lab/README.md). BENIGN services and clients only: attack scenarios are
+# deliberately not part of this file yet (see lab/README.md "Deferred").
+#
+# Both networks are `internal: true`: nothing in the lab can reach the internet or the host LAN.
+# `services` has an address on each network so one tcpdump sidecar (sharing its network namespace)
+# sees every client<->service conversation. 172.21.0.0/24 stands in for "external" destinations
+# (config/network.lab.yaml classifies it as external).
+#
+# Driven by lab/run_lab.py. Captures and labels go to ../data/lab/<run_id>/ (gitignored).
+
+name: tracewright-lab
+
+networks:
+  lab-net:
+    internal: true
+    ipam:
+      config: [{ subnet: 172.20.0.0/24 }]
+  ext-net:
+    internal: true
+    ipam:
+      config: [{ subnet: 172.21.0.0/24 }]
+
+x-client: &client
+  build:
+    context: ..
+    dockerfile: lab/images/Dockerfile.lab
+  image: tracewright-lab:latest
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  profiles: [clients]
+  volumes: ["../data/lab:/captures"]
+  mem_limit: 256m
+  pids_limit: 128
+
+services:
+  services:
+    build:
+      context: ..
+      dockerfile: lab/images/Dockerfile.lab
+    image: tracewright-lab:latest
+    networks:
+      lab-net: { ipv4_address: 172.20.0.20 }
+      ext-net: { ipv4_address: 172.21.0.20 }
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    sysctls: { net.ipv4.ip_unprivileged_port_start: 0 }
+    mem_limit: 512m
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8080), 2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  capture:
+    image: tracewright-lab:latest
+    network_mode: "service:services"
+    user: "0:0"
+    cap_drop: [ALL]
+    cap_add: [NET_RAW, NET_ADMIN]
+    security_opt: ["no-new-privileges:true"]
+    volumes: ["../data/lab:/captures"]
+    command: ["sh", "-c", "exec tcpdump -i any -U -n -Z root -w /captures/${RUN_ID:?set RUN_ID}/capture.pcap not net 127.0.0.0/8"]
+    depends_on:
+      services: { condition: service_healthy }
+
+  client1:
+    <<: *client
+    networks:
+      lab-net: { ipv4_address: 172.20.0.101 }
+      ext-net: { ipv4_address: 172.21.0.101 }
+  client2:
+    <<: *client
+    networks:
+      lab-net: { ipv4_address: 172.20.0.102 }
+      ext-net: { ipv4_address: 172.21.0.102 }
+  client3:
+    <<: *client
+    networks:
+      lab-net: { ipv4_address: 172.20.0.103 }
+      ext-net: { ipv4_address: 172.21.0.103 }

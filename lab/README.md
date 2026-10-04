@@ -1,85 +1,83 @@
-# Tracewright Lab — Topology & Scenario Design
+# Tracewright Lab
 
 | Field | Value |
 |---|---|
-| Status | **Design only.** Nothing here is built yet; construction and capture are phase P2. |
+| Status | **P2 partially implemented.** The benign skeleton, label schema and checking/split tooling exist. Attack scenarios, held-out families and the full corpus do **not**. |
 | Implements | `docs/PRD.md` §17, `docs/architecture.md` §20.1, `docs/plan.md` P2, `eval/PROTOCOL.md` |
-| Purpose | Produce labelled PCAPs (ground truth known by construction) to tune detectors on `dev` and measure on `test`. |
+| Purpose | Produce labelled captures (ground truth known by construction) to tune detectors on `dev` and measure on `test`. |
 
-> **Safety.** The lab is an isolated Docker bridge with no route to the internet or the host's other networks. Attack tools run only against lab containers. Tools and scenario scripts never run against anything outside `lab-net`.
+> **Safety.** Both lab networks are Docker `internal: true`: nothing in the lab can reach the internet
+> or the host LAN. Everything that runs here is legitimate traffic generation against lab containers.
 
-## 1. Topology
+## Implemented now
 
-One Docker bridge, `lab-net`, `172.20.0.0/24`, created `internal: true` (no egress). A capture container shares the bridge's namespace view via `tcpdump -i <bridge>` on the host side (or a sidecar with `network_mode` into a mirrored bridge) so that all inter-container traffic is captured, including traffic between clients and servers.
+### Topology (`lab/docker-compose.lab.yml`)
 
-| Role | Count | IP plan (172.20.0.0/24) | Services / tools |
-|---|---|---|---|
-| Capture | 1 | host-side bridge | `tcpdump -i <bridge> -w data/lab/<run_id>.pcap` (rotating per run) |
-| Attacker | 1 | `.10` | nmap, hydra, medusa, iodine client, dnscat2 client, custom beacon script, scp/curl uploader; HOLDOUT tools (see §3) |
-| SSH server | 1 | `.21` | OpenSSH with a few test accounts and weak lab-only passwords |
-| FTP server | 1 | `.22` | vsftpd or pure-ftpd, lab-only accounts |
-| HTTP server | 1 | `.23` | nginx with a basic-auth path; also a slowloris target |
-| File server | 1 | `.24` | Samba (SMB/RPC enumeration target) |
-| DNS authoritative (tunnel domain) | 1 | `.53` | server side of iodine and dnscat2 for a lab-only domain; also the resolver for clients |
-| Backup/monitoring server | 1 | `.30` | rsync target, monitoring heartbeat receiver (hard negatives) |
-| Clients | 3–5 | `.101`–`.105` | benign generators (see §4) |
-| "External" sink | 1 | separate lab subnet, e.g. `172.21.0.0/24` | stands in for external destinations: C2 listener for the beacon script, upload target for exfil, CDN-like HTTP, NTP |
-
-`config/network.yaml` for lab captures treats `172.20.0.0/24` as internal and `172.21.0.0/24` as external (set explicitly in the lab's network config, since both are RFC 1918). The lab network config used for each evaluation run is recorded in its manifest.
-
-## 2. Attack scenarios (classes with detectors)
-
-Each scenario script writes one episode per attack instance to `labels.jsonl` via `lab/labeler.py` (format in `eval/PROTOCOL.md` §2).
-
-| Class | Scenarios | Parameter variation |
+| Host | Address | Role |
 |---|---|---|
-| SCAN | nmap SYN scan, nmap connect scan, slow scans (`-T1`/`-T2`) | vertical vs horizontal; default vs slow timing (reported separately) |
-| BRUTE | hydra and medusa against SSH, FTP, HTTP basic auth; password spraying (one source, ≥ 5 targets, one service) | threads, wordlist size, service |
-| DNSTUN | iodine and dnscat2 tunnels | two tools (tool-held-out evaluation: tune on one, test on the other, and vice versa) |
-| BEACON | custom beacon script | interval 30 s – 5 min; jitter 0 – 50 %; HTTP and raw TCP/TLS; capture duration varied for the detectability sweep |
-| EXFIL | scp and curl uploads of 50 – 500 MB to the external sink | size, tool, duration |
-| Multi-stage demo | scan → brute force → beacon → exfil from the brute-forced host | one fixed, scripted storyline; later used for `demo/demo.pcap` (P10) |
+| `services` | 172.20.0.20 (lab-net), 172.21.0.20 (ext-net) | HTTP roles (80, 8080 heartbeat, 8081 upload sink, 8082 packages, 8083 stream), TCP backup sink 873, DNS stub 53, NTP responder 123 |
+| `capture` | shares `services`' network namespace | `tcpdump -i any` → `data/lab/<run_id>/capture.pcap` (NET_RAW/NET_ADMIN only) |
+| `client1..3` | 172.20.0.101–103 / 172.21.0.101–103 | benign traffic generators |
 
-## 3. LAB-HOLDOUT scenarios (families with no detector)
+`172.20.0.0/24` is "internal" and `172.21.0.0/24` stands in for "external" destinations
+(`config/network.lab.yaml`; both are RFC 1918, so the lab overrides the default context).
+One capture point is used because Docker bridges do not flood unicast traffic to a third container;
+the sidecar therefore sees every client↔service conversation, which is all this skeleton produces.
+Services and clients run non-root, read-only, `cap_drop: ALL` (only `capture` has NET_RAW/NET_ADMIN).
 
-At least three of these four are captured; the corresponding tools and parameters are **never** used to tune any detector:
+### Benign scenarios (`lab/benign/`, standard library only, seeded)
 
-1. ICMP tunneling
-2. Slowloris (against the HTTP server)
-3. SMB/RPC enumeration (against the file server)
-4. Reverse shell on a non-standard port
+Labelled `hard_negative` (a detector finding on one is a false positive):
 
-## 4. Hard negatives and benign traffic
+| Scenario | Class | Resembles |
+|---|---|---|
+| `ntp` | `NTP` | periodic UDP |
+| `monitoring_heartbeat` | `MONITORING_HEARTBEAT` | regular beacon timing |
+| `rsync_backup` | `RSYNC_BACKUP` | large outbound transfer (internal target) |
+| `cloud_sync_upload` | `CLOUD_SYNC_UPLOAD` | large outbound transfer to an external destination |
+| `package_update` | `PACKAGE_UPDATE` | bulk downloads |
+| `cdn_browsing` | `CDN_BROWSING` | high-cardinality DNS |
+| `video_streaming` | `VIDEO_STREAMING` | long, steady flows |
+| `background_browsing` | _unlabelled_ | ordinary DNS + page fetches (background) |
 
-Hard negatives (each present in both `dev` and `test`, each labelled so that a finding on one counts as a false positive of that type):
+### Ground truth, checking and splits
 
-- rsync backup to the backup server
-- package updates (apt-style bulk HTTP downloads)
-- NTP
-- monitoring heartbeats (periodic, regular, small)
-- cloud-sync-style uploads (large, outbound, legitimate)
-- CDN-heavy browsing
-- video streaming
-- automation SSH (frequent short logins by a scripted client)
+* `lab/schema.py` — `labels.jsonl` schema (`eval/PROTOCOL.md` §2, `eval/REVISIONS.md` #1); validates
+  kind/class pairs, IPs, timestamps. `lab/labeler.py` writes episodes; an episode that raises is not recorded.
+* `lab/check_labels.py` / `lab/checks.py` — `python -m lab.check_labels <run_dir> <analysis_dir>`:
+  every episode's actor and a target must appear in the capture's Zeek `conn` table inside the labelled range.
+* `lab/run_lab.py` — records one run (`data/lab/<run_id>/`), writes `run.json` (`lab/runmeta.py`), `--promote`
+  copies labels + `run.json` to `lab/runs/<run_id>/` for committing. Smoke runs are never promoted.
+* `eval/splits.py` — deterministic, append-only, stratified split assignment; integrity hashes of each run's
+  `run.json`/`labels.jsonl`; `validate --against-git`; `report` compares the committed corpus to the P2
+  acceptance numbers and states what is missing.
+* `eval/datasets.md` — provenance table (currently: nothing recorded).
 
-Benign-only runs total **≥ 4 hours** of capture, mixing the above with ordinary client browsing, DNS and file access.
+Verified (2026-10-04): short benign runs recorded through Docker + tcpdump, analysed by the P1 worker, and
+passed `lab.check_labels`; a deliberately corrupted label failed it. A plan may use each client once.
 
-## 5. Run structure and labels
+```bash
+python -m lab.run_lab --run-id smoke01 --plan client1:ntp:20 --plan client2:cdn_browsing:20   # not promoted
+python -m eval.splits report
+```
 
-- One run = one capture file + one `labels.jsonl` + a small `run.json` (`run_id`, scenario list, lab network config, tool versions, capture SHA-256, start/end). `run_id` is stable (`r001`, `r002`, …).
-- Captures live in `data/lab/` (gitignored). Only `labels.jsonl`, `run.json`, scenario scripts, `eval/splits.yaml` and `eval/datasets.md` (sources + SHA-256) are committed.
-- Runs mix scenario types realistically (an attack inside background benign traffic) but each episode's actor/targets/time range are logged at the moment the scenario starts and stops.
-- `lab/check_labels.py` checks every episode's actor/target IPs appear in the capture's Zeek `conn.log` within the labelled range.
+## Deferred (not built; requires decisions and data that do not exist yet)
 
-## 6. Split planning (applied in P2, before P3)
+* **Attack-class scenarios** for `SCAN`, `BRUTE`, `DNSTUN`, `BEACON`, `EXFIL` and the multi-stage demo
+  (`docs/PRD.md` §17, `docs/plan.md` P2). The class names exist in `lab/schema.py` so labels can be validated,
+  but no scenario code, tooling or episodes exist.
+* **LAB-HOLDOUT families** (`docs/PRD.md` §11/§17). Same: names registered, nothing generated.
+* **Automation-SSH hard negative** (class registered, scenario not written; needs an SSH server in the lab).
+* **Attack-target hosts** (separate SSH/FTP/HTTP/file-server hosts) — not part of the benign skeleton.
+* **The corpus itself**: ≥ 4 h benign-only, ≥ 4 dev + ≥ 4 test episodes per class, ≥ 8 LAB-HOLDOUT test captures,
+  populated `eval/splits.yaml`. `python -m eval.splits report` shows 0 of the P2 requirements met.
+* **CICIDS2017** (Monday benign + attack days): deferred by decision; nothing downloaded.
 
-- Assign runs to `dev`/`test` by run, ≈ 50/50 per scenario type, in `eval/splits.yaml`.
-- DNS tunneling: iodine runs ↔ dnscat2 runs assigned so both held-out directions can be evaluated.
-- LAB-HOLDOUT test captures ≥ 8; every attack class ≥ 4 dev and ≥ 4 test episodes.
-- External corpora: CICIDS2017 Monday (benign) for BENIGN; selected attack days as CIC-ATTACK, reported separately; use `editcap` time slices if full files are too large. Source and SHA-256 recorded in `eval/datasets.md`.
+P2 is therefore **not complete**, and P3 must not start until the deferred items are done and the split
+manifest is committed and frozen.
 
-## 7. Known biases (to be restated in `docs/EVALUATION.md`)
+## Known biases (to be restated in `docs/EVALUATION.md`)
 
-- Traffic reflects the specific tools, versions and topology above; a single flat subnet is far simpler than a real network.
-- Attack and benign generators are authored by the same person, so benign patterns may be unrealistically easy or hard.
-- CICIDS2017 is synthetic with documented labelling issues; it is a secondary sanity check, not the headline.
+* Lab traffic reflects the specific generators and a single flat topology, far simpler than a real network.
+* Benign and (later) attack generators are written by the same author, so benign patterns may be unrealistically easy or hard.
+* CICIDS2017 is synthetic with documented labelling issues; it is a secondary check, not the headline.

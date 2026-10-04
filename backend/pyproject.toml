@@ -52,7 +52,9 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["app"]
+files = ["app", "../lab", "../eval"]
+mypy_path = ".."
+explicit_package_bases = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]

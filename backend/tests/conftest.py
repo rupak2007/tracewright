@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,8 @@ import pytest
 from app.core.config import get_pipeline_settings, get_settings
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))  # lab/ and eval/ live at the repo root
 
 
 @pytest.fixture(autouse=True)

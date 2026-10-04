@@ -1,0 +1,19 @@
+# Lab image: benign services, traffic generators and tcpdump. Standard-library Python only.
+# Build context is the repo root (it copies lab/). Pinned by tag and digest (SEC-10).
+FROM python:3.13-slim-trixie@sha256:bb2988715db2cf7ace7b53f38f3cffbef7c7046a656bee66245eb0ed386e2e81
+
+ARG UID=10002
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/opt/lab
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends tcpdump \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --gid ${UID} lab \
+ && useradd --uid ${UID} --gid ${UID} --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin lab
+
+WORKDIR /opt/lab
+COPY lab/__init__.py lab/schema.py lab/labeler.py ./lab/
+COPY lab/benign ./lab/benign
+
+USER ${UID}:${UID}
+CMD ["python", "-m", "lab.benign.servers"]

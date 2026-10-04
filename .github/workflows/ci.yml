@@ -21,9 +21,9 @@ jobs:
           python-version: "3.13"
       - run: python -m pip install uv==0.12.23
       - run: uv sync --frozen
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy app
+      - run: uv run ruff check . ../lab ../eval
+      - run: uv run ruff format --check . ../lab ../eval
+      - run: uv run mypy
       - run: uv run pytest
 
   docker:

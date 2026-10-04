@@ -91,7 +91,8 @@ Re-running an evaluation from its manifest must give identical metrics (NFR-02).
 | Item | Status |
 |---|---|
 | Protocol | Frozen (this document) |
-| Lab corpus, labels, `eval/splits.yaml`, `eval/datasets.md` | Not yet built (P2) |
+| Label schema, split tooling, `eval/datasets.md` | Implemented (P2 partial); see `eval/REVISIONS.md` #1 for the added label fields |
+| Lab corpus, labels, populated `eval/splits.yaml` | Not yet built: attack scenarios, held-out families and the full corpus are deferred (`lab/README.md`) |
 | Detector results | Not yet measured |
 | G1 | Not run |
 | G2 | Not run |

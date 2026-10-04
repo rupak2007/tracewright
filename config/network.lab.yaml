@@ -1,0 +1,11 @@
+# Network context for LAB captures (lab/README.md). Both lab subnets are RFC 1918, so the lab
+# overrides the default: 172.20.0.0/24 is "internal", 172.21.0.0/24 stands in for "external".
+internal_cidrs:
+  - 172.20.0.0/24
+known_hosts:
+  scanners: []
+  resolvers: [172.20.0.20]
+  backup_servers: []
+allowlist:
+  domains: []
+  periodic_ports: [123]
