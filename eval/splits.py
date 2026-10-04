@@ -27,6 +27,7 @@ import yaml
 from lab.labeler import read_labels
 from lab.runmeta import RunMeta, load_run
 from lab.schema import ATTACK_CLASSES, HARD_NEGATIVE_CLASSES, HOLDOUT_CLASSES, Episode
+from lab.verification import eligibility, sha256_file
 
 REPO = Path(__file__).resolve().parents[1]
 RUNS_DIR = REPO / "lab" / "runs"
@@ -48,6 +49,8 @@ class LoadedRun:
     episodes: tuple[Episode, ...]
     run_json_sha256: str
     labels_sha256: str
+    eligible: bool = False  # passed lab.verify_run and nothing changed since
+    eligibility_reason: str = "not verified"
 
 
 def _sha256(path: Path) -> str:
@@ -56,7 +59,9 @@ def _sha256(path: Path) -> str:
 
 def load_runs(runs_dir: Path = RUNS_DIR) -> dict[str, LoadedRun]:
     runs: dict[str, LoadedRun] = {}
-    for run_dir in sorted(p for p in runs_dir.iterdir() if p.is_dir()):
+    for run_dir in sorted(
+        p for p in runs_dir.iterdir() if p.is_dir() and not p.name.startswith(".")
+    ):
         meta = load_run(run_dir / "run.json")
         if meta.run_id != run_dir.name:
             raise ValueError(f"{run_dir.name}: run.json run_id is {meta.run_id!r}")
@@ -69,11 +74,14 @@ def load_runs(runs_dir: Path = RUNS_DIR) -> dict[str, LoadedRun]:
                 )
         if not meta.benign_only and not episodes:
             raise ValueError(f"{run_dir.name}: not benign_only but has no labelled episodes")
+        eligible, reason = eligibility(run_dir, meta)
         runs[meta.run_id] = LoadedRun(
             meta,
             episodes,
             _sha256(run_dir / "run.json"),
             _sha256(labels_path) if labels_path.exists() else "",
+            eligible,
+            reason,
         )
     return runs
 
@@ -97,12 +105,15 @@ def _tie_break(seed: int, run_id: str) -> int:
 def assign_new(
     existing: Mapping[str, Mapping[str, str]], runs: Mapping[str, LoadedRun], seed: int
 ) -> dict[str, dict[str, str]]:
-    """Return entries for runs that have none yet. Existing entries are never touched."""
+    """Return entries for ELIGIBLE (verified) runs that have none yet. Existing entries are never
+    touched, and a run that has not passed verification is never assigned."""
     counts: dict[str, dict[str, int]] = {}
     for entry in existing.values():
         counts.setdefault(entry["stratum"], dict.fromkeys(SPLIT_NAMES, 0))[entry["split"]] += 1
     created: dict[str, dict[str, str]] = {}
-    pending = sorted((stratum(r), run_id) for run_id, r in runs.items() if run_id not in existing)
+    pending = sorted(
+        (stratum(r), run_id) for run_id, r in runs.items() if run_id not in existing and r.eligible
+    )
     for run_stratum, run_id in pending:
         tally = counts.setdefault(run_stratum, dict.fromkeys(SPLIT_NAMES, 0))
         if tally["dev"] == tally["test"]:
@@ -150,11 +161,18 @@ def immutability_violations(
     return problems
 
 
-def validate(manifest: Mapping[str, Any], runs: Mapping[str, LoadedRun]) -> list[str]:
+def validate(
+    manifest: Mapping[str, Any],
+    runs: Mapping[str, LoadedRun],
+    captures_dir: Path | None = None,
+) -> list[str]:
+    """Integrity checks. A run without a passing verification is simply not eligible (reported by
+    `pending_runs`); it is a problem only if it already holds a split assignment."""
     problems: list[str] = []
     assigned: Mapping[str, Mapping[str, str]] = manifest["assigned"]
     for run_id in sorted(set(runs) - set(assigned)):
-        problems.append(f"{run_id}: has no split assignment")
+        if runs[run_id].eligible:
+            problems.append(f"{run_id}: verified but has no split assignment (run `assign`)")
     for run_id in sorted(set(assigned) - set(runs)):
         problems.append(f"{run_id}: assigned but no run record exists")
     for run_id, entry in assigned.items():
@@ -167,7 +185,26 @@ def validate(manifest: Mapping[str, Any], runs: Mapping[str, LoadedRun]) -> list
             problems.append(f"{run_id}: run.json changed after assignment")
         if entry.get("labels_sha256") != run.labels_sha256:
             problems.append(f"{run_id}: labels.jsonl changed after assignment")
+        if not run.eligible:
+            problems.append(f"{run_id}: assigned but not eligible: {run.eligibility_reason}")
+        if captures_dir is not None:
+            for name in ("capture.pcap", "capture.pcapng"):
+                path = captures_dir / run_id / name
+                if path.exists() and sha256_file(path) != run.meta.capture_sha256:
+                    problems.append(f"{run_id}: capture file does not match its recorded SHA-256")
     return problems
+
+
+def pending_runs(
+    manifest: Mapping[str, Any], runs: Mapping[str, LoadedRun]
+) -> list[tuple[str, str]]:
+    """Registered runs that hold no assignment and are not eligible, with the reason why."""
+    assigned = manifest["assigned"]
+    return [
+        (run_id, run.eligibility_reason)
+        for run_id, run in sorted(runs.items())
+        if run_id not in assigned and not run.eligible
+    ]
 
 
 @dataclass(frozen=True)
@@ -281,6 +318,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     assign.add_argument("--seed", type=int, default=20261004)
     check = sub.add_parser("validate")
     check.add_argument("--against-git", action="store_true")
+    check.add_argument("--captures-dir", type=Path, help="also re-hash capture files found here")
     rep = sub.add_parser("report")
     rep.add_argument("--require-complete", action="store_true")
     args = parser.parse_args(argv)
@@ -296,7 +334,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"assigned {len(created)} new run(s); {len(manifest['assigned'])} total")
         return 0
     if args.command == "validate":
-        problems = validate(manifest, runs)
+        problems = validate(manifest, runs, args.captures_dir)
         if args.against_git:
             head = _git_head_manifest()
             if head is not None:
@@ -309,6 +347,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 1 if problems else 0
     requirements = corpus_report(manifest, runs)
+    pending = pending_runs(manifest, runs)
+    for run_id, reason in pending:
+        print(f"PENDING {run_id}: not eligible for a split ({reason})")
     unmet = [r for r in requirements if not r.met]
     for r in requirements:
         status = "MET   " if r.met else "UNMET "

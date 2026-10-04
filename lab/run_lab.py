@@ -177,7 +177,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         target.mkdir(parents=True)
         shutil.copy2(labels, target / "labels.jsonl")
         shutil.copy2(run_dir / "run.json", target / "run.json")
-        print(f"promoted to {target} (commit it, then assign a split with eval/splits.py)")
+        print(f"promoted to {target}; it is NOT eligible for a split until `lab.verify_run` passes")
     return 0
 
 

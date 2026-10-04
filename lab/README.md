@@ -61,13 +61,101 @@ python -m lab.run_lab --run-id smoke01 --plan client1:ntp:20 --plan client2:cdn_
 python -m eval.splits report
 ```
 
+## Supplying an externally produced capture (interface only)
+
+The lab runner generates only the benign scenarios above. A capture for any other registered class
+(`SCAN`, `BRUTE`, `DNSTUN`, `BEACON`, `EXFIL`; the `LAB-HOLDOUT` families `ICMP_TUNNEL`, `SLOWLORIS`,
+`SMB_RPC_ENUM`, `REVERSE_SHELL`; and the `AUTOMATION_SSH` hard negative) must be produced **outside** this
+repository's tooling and registered here. This repository provides no way to generate that traffic and
+this document says nothing about how to produce it. Everything below is paperwork and verification.
+
+> `LAB-HOLDOUT` is the held-out *corpus* (anomaly gate G1); `AUTOMATION_SSH` is a *hard negative*. They are
+> kept as the project documents define them (`docs/PRD.md` §17, `eval/PROTOCOL.md` §1).
+
+### What you provide: one directory per run
+
+```text
+<any location>/<run_id>/
+    submission.json        the declaration (fields below)
+    labels.jsonl           one JSON object per labelled episode (schema: lab/schema.py)
+    capture.pcap | capture.pcapng       exactly one capture file
+```
+
+`run_id`: letters, digits, `-`, `_`; unique across all runs; never reused. The supplier-stated hash of the
+capture is **not** accepted: the SHA-256 is computed by the registration tool.
+
+`submission.json` (all fields required; unknown fields are rejected):
+
+| Field | Meaning |
+|---|---|
+| `run_id` | the run's identity; must equal every label's `run_id` |
+| `holdout` | `true` only for a LAB-HOLDOUT run (then only `kind: "holdout"` scenarios are allowed) |
+| `start`, `end` | ISO-8601 UTC (`...Z`): the window the capture covers; every episode must fall inside it |
+| `network_config` | file name in `config/` classifying internal/external (e.g. `network.lab.yaml`) |
+| `clients` | `[{"id", "ip"}]` — every host that acted; ids and IPs unique; every label's `actor` must be one |
+| `scenarios` | `[{"kind", "class", "client", "tool"}]` — what the run claims to contain; must match the labelled `kind:class` set exactly, in both directions |
+| `provenance.supplied_by` | who supplied it (non-empty) |
+| `provenance.supplied_at` | ISO-8601 UTC time of supply |
+| `provenance.collection_method` | free-text description of how the capture was produced (non-empty) |
+| `provenance.tool_versions` | non-empty `{name: version}` for whatever produced and captured the traffic |
+| `provenance.isolated_environment` | must be `true`: produced in an isolated lab, not on a real network |
+| `provenance.contains_real_user_data` | must be `false` |
+| `provenance.scenario_parameters`, `provenance.notes` | optional, recorded verbatim, never trusted |
+
+Valid `kind`/`class` pairs are exactly those in `lab/schema.py` (`attack`, `holdout`, `hard_negative`).
+A template with placeholder values is in the `lab/submission.py` module docstring.
+
+### Commands (from the repository root, backend environment)
+
+```bash
+# 1. Check the paperwork and the file; stage the run as UNVERIFIED. Nothing is written on rejection.
+python -m lab.register_external <submission_dir>
+
+# 2. Analyse the staged capture with the P1 pipeline inside the worker container (the only place
+#    capture bytes are parsed); use the network config named in the submission.
+docker compose run --rm -v "$PWD/data/lab/<run_id>:/in:ro" -v "$PWD/<analysis_out>:/out" \
+  worker python -m app.cli analyze /in/capture.pcap --out /out/<run_id> --config-dir <config_dir>
+
+# 3. Verify the labels against that analysis. Writes lab/runs/<run_id>/verification.json.
+python -m lab.verify_run <run_id> <analysis_out>/<run_id>
+
+# 4. Only now can the run be given a split (append-only; deterministic; stratified).
+python -m eval.splits assign
+python -m eval.splits validate --against-git [--captures-dir data/lab]
+python -m eval.splits report
+```
+
+### What the checks do (and do not) establish
+
+* **Registration** rejects: malformed or incomplete `submission.json`/`labels.jsonl`; labels that contradict the
+  declaration; a `run_id` already in use; a capture that fails P1 file validation (magic bytes, size,
+  compression) or is already registered under another run id (no capture can appear in two splits).
+* **Verification** (`lab.verify_run`) does not trust the supplier: the analysis must come from the same
+  capture (SHA-256), and each labelled episode's actor and a target must actually communicate in the capture
+  inside the labelled range; run flags must match the labelled kinds. It never edits labels. A failed run
+  stays ineligible.
+* **Eligibility** requires a passing `verification.json` whose hashes still equal the current `run.json`,
+  `labels.jsonl` and declared capture hash. Editing any of them afterwards revokes eligibility, and
+  `eval.splits validate` fails if such a run holds an assignment.
+* Verification shows that a label is **consistent with the capture's connection records**; it cannot show
+  that the traffic is "really" the labelled behaviour. Content-level correctness remains the supplier's
+  responsibility and is recorded as their claim (`provenance`).
+
+### From verified run to split
+
+`python -m eval.splits assign` considers only eligible runs. Each is placed in `dev` or `test` by a seeded,
+stratified, append-only rule (stratum = the labelled `kind:class` set, plus the tool for `DNSTUN`, so both
+tools reach both splits). An existing assignment is never changed; `eval/splits.yaml` stays empty until real
+verified runs exist, and must be committed and frozen before P3. Changes to `eval/splits.yaml` after that
+need an entry in `eval/REVISIONS.md` and user approval.
+
 ## Deferred (not built; requires decisions and data that do not exist yet)
 
-* **Attack-class scenarios** for `SCAN`, `BRUTE`, `DNSTUN`, `BEACON`, `EXFIL` and the multi-stage demo
-  (`docs/PRD.md` §17, `docs/plan.md` P2). The class names exist in `lab/schema.py` so labels can be validated,
-  but no scenario code, tooling or episodes exist.
-* **LAB-HOLDOUT families** (`docs/PRD.md` §11/§17). Same: names registered, nothing generated.
-* **Automation-SSH hard negative** (class registered, scenario not written; needs an SSH server in the lab).
+* **Captures for `SCAN`, `BRUTE`, `DNSTUN`, `BEACON`, `EXFIL` and the multi-stage demo**
+  (`docs/PRD.md` §17, `docs/plan.md` P2). The registration/verification interface above exists, but no such
+  capture has been supplied; the class names exist in `lab/schema.py` only so labels can be validated.
+* **LAB-HOLDOUT families** (`docs/PRD.md` §11/§17). Same: names registered, no capture supplied.
+* **Automation-SSH hard negative** (class registered; no scenario in the runner and no capture supplied).
 * **Attack-target hosts** (separate SSH/FTP/HTTP/file-server hosts) — not part of the benign skeleton.
 * **The corpus itself**: ≥ 4 h benign-only, ≥ 4 dev + ≥ 4 test episodes per class, ≥ 8 LAB-HOLDOUT test captures,
   populated `eval/splits.yaml`. `python -m eval.splits report` shows 0 of the P2 requirements met.

@@ -41,6 +41,10 @@ Captures live in `data/lab/<run_id>/capture.pcap` (gitignored). What is committe
 manifest `eval/splits.yaml` additionally stores the SHA-256 of both committed files and
 `python -m eval.splits validate` fails if either changes after assignment.
 
+Externally supplied captures (registered with `python -m lab.register_external`, see `lab/README.md`) are
+recorded the same way: `run.json` carries `origin: external`, the supplier's provenance claim and the
+SHA-256 computed at registration. They count only after `python -m lab.verify_run` passes.
+
 Current committed runs: **none**. Regenerate this table's contents with:
 
 ```bash

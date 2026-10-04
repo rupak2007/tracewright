@@ -47,6 +47,7 @@ An episode is **detected** if at least one finding matches it. A finding that ma
 - `eval/splits.yaml` assigns every run to `dev` or `test` (≈ 50/50 per scenario type) **before P3 begins**. It is committed; any later change requires an entry in `eval/REVISIONS.md` and user approval. A capture is never moved between splits to improve a metric.
 - **Tool-held-out (DNS tunneling):** tuned on one tool (iodine) and tested on another (dnscat2), and vice versa; both directions are reported.
 - **Family-held-out:** LAB-HOLDOUT families are never used for tuning detectors. LAB-HOLDOUT `dev` captures may be used only to tune the anomaly window size and Isolation Forest hyperparameters.
+- **Eligibility (added, `eval/REVISIONS.md` #3):** a run is assigned a split only after `python -m lab.verify_run` passes against its analysed capture; the verification record is bound by SHA-256 to the run's `run.json`, `labels.jsonl` and declared capture hash, so later edits revoke eligibility. A given capture appears in exactly one run. Externally supplied runs also need full provenance (`lab/README.md`).
 - Minimum corpus (plan.md P2 acceptance): every attack class ≥ 4 dev and ≥ 4 test episodes; hard negatives present in both splits; ≥ 8 LAB-HOLDOUT test captures; ≥ 4 h of benign-only capture.
 - Fixed random seeds. Every result carries a run manifest (`git commit`, config hash, feature-set version, scorer, hyperparameters, seed, split, Zeek version, timestamp) in `eval/results/<run_id>/manifest.json`.
 

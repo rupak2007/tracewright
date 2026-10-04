@@ -11,6 +11,7 @@ pytest.importorskip("lab")
 from eval import splits
 from lab.runmeta import RunMeta, load_run
 from lab.schema import ATTACK_CLASSES, HARD_NEGATIVE_CLASSES, HOLDOUT_CLASSES, Episode
+from lab.verification import FILE_NAME, Verification, sha256_file
 
 T0 = datetime(2026, 11, 2, 10, 0, 0, tzinfo=UTC)
 
@@ -22,7 +23,13 @@ def write_run(
     *,
     holdout: bool = False,
     duration_s: float = 600.0,
+    verified: bool = True,
 ) -> None:
+    """Write a SYNTHETIC run record (not a real capture; no PCAP exists for it).
+
+    `verified=True` also writes a passing verification.json bound to the files just written, which
+    is what makes the run eligible for a split.
+    """
     episodes = episodes or []
     d = runs_dir / run_id
     d.mkdir(parents=True)
@@ -41,6 +48,12 @@ def write_run(
         network_config="network.lab.yaml",
     )
     (d / "run.json").write_text(meta.to_json())
+    _write_labels_and_verification(d, run_id, episodes, meta, verified)
+
+
+def _write_labels_and_verification(
+    d: Path, run_id: str, episodes: list[tuple[str, str, str]], meta: RunMeta, verified: bool
+) -> None:
     if episodes:
         lines = []
         for n, (kind, cls, tool) in enumerate(episodes, start=1):
@@ -50,6 +63,23 @@ def write_run(
             )  # fmt: skip
             lines.append(json.dumps(e.to_json_dict(), sort_keys=True))
         (d / "labels.jsonl").write_text("\n".join(lines) + "\n")
+    if verified:
+        write_verification(d, meta, passed=True)
+
+
+def write_verification(run_dir: Path, meta: RunMeta, *, passed: bool) -> None:
+    record = Verification(
+        run_id=meta.run_id,
+        passed=passed,
+        problems=() if passed else ("synthetic failure",),
+        capture_sha256=meta.capture_sha256,
+        run_json_sha256=sha256_file(run_dir / "run.json"),
+        labels_sha256=sha256_file(run_dir / "labels.jsonl"),
+        analysis_zeek_version="synthetic",
+        analysis_connections=0,
+        verified_at="2026-11-02T10:20:00.000Z",
+    )
+    (run_dir / FILE_NAME).write_text(record.to_json(), encoding="utf-8")
 
 
 def manifest(assigned: dict[str, Any] | None = None, seed: int = 7) -> dict[str, Any]:
@@ -150,10 +180,14 @@ def test_validate_detects_tampering_and_gaps(runs_dir: Path) -> None:
     changed = json.dumps(e.to_json_dict(), sort_keys=True)
     (runs_dir / "r1" / "labels.jsonl").write_text(changed + chr(10))
     problems = splits.validate(manifest(assigned), splits.load_runs(runs_dir))
-    assert problems == ["r1: labels.jsonl changed after assignment"]
+    assert "r1: labels.jsonl changed after assignment" in problems
+    assert any(
+        "r1: assigned but not eligible: labels.jsonl changed after verification" in p
+        for p in problems
+    )
 
     missing = splits.validate(manifest({"r1": assigned["r1"]}), splits.load_runs(runs_dir))
-    assert any("r2: has no split assignment" in p for p in missing)
+    assert any("r2: verified but has no split assignment" in p for p in missing)
     ghost = splits.validate(
         manifest({**assigned, "gone": assigned["r1"]}), splits.load_runs(runs_dir)
     )
@@ -246,3 +280,92 @@ def test_cli_report_exit_codes(
     assert "0/27 requirements met; 27 unmet" in capsys.readouterr().out
     assert splits.main(["report", "--require-complete"]) == 1
     assert splits.main(["validate"]) == 0
+
+
+# ---------------------------------------------- eligibility (externally supplied runs)
+
+
+def test_unverified_runs_are_never_assigned(runs_dir: Path) -> None:
+    write_run(runs_dir, "v1", [("hard_negative", "NTP", "")])
+    write_run(runs_dir, "u1", [("hard_negative", "NTP", "")], verified=False)
+    runs = splits.load_runs(runs_dir)
+    assert runs["v1"].eligible and not runs["u1"].eligible
+    assert set(splits.assign_new({}, runs, seed=1)) == {"v1"}
+
+
+def test_failed_verification_blocks_assignment(runs_dir: Path) -> None:
+    write_run(runs_dir, "f1", [("attack", "SCAN", "")], verified=False)
+    meta = load_run(runs_dir / "f1" / "run.json")
+    write_verification(runs_dir / "f1", meta, passed=False)
+    runs = splits.load_runs(runs_dir)
+    assert not runs["f1"].eligible and runs["f1"].eligibility_reason.startswith(
+        "verification failed"
+    )
+    assert splits.assign_new({}, runs, seed=1) == {}
+
+
+def test_pending_runs_are_reported_with_their_reason_and_are_not_a_validation_problem(
+    runs_dir: Path,
+) -> None:
+    write_run(runs_dir, "u1", [("attack", "SCAN", "")], verified=False)
+    runs = splits.load_runs(runs_dir)
+    assert splits.pending_runs(manifest(), runs) == [
+        ("u1", "not verified (no valid verification.json)")
+    ]
+    assert splits.validate(manifest(), runs) == []  # pending is not an error; it is just ineligible
+
+
+def test_registered_but_unverified_classes_still_count_as_missing(runs_dir: Path) -> None:
+    for i in range(10):
+        write_run(runs_dir, f"s{i}", [("attack", "SCAN", "")], verified=False)
+    runs = splits.load_runs(runs_dir)
+    result = {
+        r.name: r for r in splits.corpus_report(manifest(splits.assign_new({}, runs, 1)), runs)
+    }
+    for split in ("dev", "test"):
+        row = result[f"attack SCAN episodes ({split})"]
+        assert row.actual == "0" and not row.met
+
+
+def test_a_verified_run_that_is_later_tampered_is_flagged_if_assigned(runs_dir: Path) -> None:
+    write_run(runs_dir, "r1", [("hard_negative", "NTP", "")])
+    runs = splits.load_runs(runs_dir)
+    assigned = splits.assign_new({}, runs, seed=1)
+    path = runs_dir / "r1" / "run.json"
+    path.write_text(path.read_text().replace('"duration_s": 600.0', '"duration_s": 601.0'))
+    problems = splits.validate(manifest(assigned), splits.load_runs(runs_dir))
+    assert "r1: run.json changed after assignment" in problems
+    assert any("not eligible: run.json changed after verification" in p for p in problems)
+
+
+def test_verified_but_unassigned_run_is_flagged_so_it_cannot_be_forgotten(runs_dir: Path) -> None:
+    write_run(runs_dir, "r1", [("hard_negative", "NTP", "")])
+    problems = splits.validate(manifest(), splits.load_runs(runs_dir))
+    assert problems == ["r1: verified but has no split assignment (run `assign`)"]
+
+
+def test_capture_files_are_rehashed_when_a_captures_dir_is_given(
+    runs_dir: Path, tmp_path: Path
+) -> None:
+    write_run(runs_dir, "r1", [("hard_negative", "NTP", "")])
+    runs = splits.load_runs(runs_dir)
+    assigned = splits.assign_new({}, runs, seed=1)
+    captures = tmp_path / "captures"
+    (captures / "r1").mkdir(parents=True)
+    (captures / "r1" / "capture.pcap").write_bytes(b"not the recorded capture")
+    problems = splits.validate(manifest(assigned), runs, captures)
+    assert problems == ["r1: capture file does not match its recorded SHA-256"]
+    assert (
+        splits.validate(manifest(assigned), runs, tmp_path / "empty-dir") == []
+    )  # absent: skipped
+
+
+def test_hidden_staging_directories_are_ignored(runs_dir: Path) -> None:
+    write_run(runs_dir, "r1", [("hard_negative", "NTP", "")])
+    (runs_dir / ".staging-half-written").mkdir()
+    assert set(splits.load_runs(runs_dir)) == {"r1"}
+
+
+def test_the_shipped_manifest_is_still_empty_until_real_validated_captures_exist() -> None:
+    assert splits.load_manifest()["assigned"] == {}
+    assert not [p for p in splits.RUNS_DIR.iterdir() if p.is_dir()]  # no run records committed
