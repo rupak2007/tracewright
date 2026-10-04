@@ -15,3 +15,14 @@ class StartupCheckError(TracewrightError):
 
     def __init__(self, message: str) -> None:
         super().__init__("STARTUP_CHECK_FAILED", message)
+
+
+class IngestError(TracewrightError):
+    """Upload validation, Zeek execution or normalisation failed. Codes are stable (UI/API)."""
+
+
+class ConfigError(TracewrightError):
+    """A file under config/ is missing or invalid."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__("CONFIG_INVALID", message)

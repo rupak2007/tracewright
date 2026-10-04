@@ -4,7 +4,7 @@ import re
 import subprocess  # fixed argv, shell=False; never fed capture-derived values
 from pathlib import Path
 
-from app.core.config import Settings
+from app.core.config import PipelineSettings, Settings
 from app.core.errors import StartupCheckError
 
 _ZEEK_VERSION_RE = re.compile(r"^zeek version (\S+)$")
@@ -34,7 +34,7 @@ def zeek_version(zeek_bin: str) -> str:
     return match.group(1)
 
 
-def check_zeek(settings: Settings) -> str:
+def check_zeek(settings: PipelineSettings) -> str:
     version = zeek_version(settings.zeek_bin)
     expected = settings.zeek_expected_version
     if expected is not None and version != expected:

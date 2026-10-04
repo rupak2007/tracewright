@@ -16,6 +16,7 @@ def _set_env(monkeypatch: pytest.MonkeyPatch, **extra: str) -> None:
 
 
 def test_loads_from_env_with_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("ZEEK_EXPECTED_VERSION", raising=False)  # set in the worker image
     _set_env(monkeypatch)
     settings = get_settings()
     assert settings.postgres_host == "db"

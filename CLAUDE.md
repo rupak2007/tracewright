@@ -14,7 +14,7 @@ If these conflict, the order above wins. Never change architecture silently: wri
 
 ## Current status
 
-- Phase: **P0 complete locally; P1 not started.** Verified 2026-10-04 on Docker 29.8.1 / Compose v5.5.1: stack starts healthy (db, api, worker), `/api/v1/health` returns 200, worker runs Zeek 9.0.0 (pinned) as uid 10001, `scripts/check_worker_sandbox.sh` passes 7/7 (non-root, read-only FS, CapEff=0 + no-new-privileges, no DNS/TCP egress, read-only uploads, artifacts writable). Backend: ruff, mypy --strict and 21 pytest tests pass, 98% coverage. **Caveat:** `.github/workflows/ci.yml` has not run on GitHub (no remote yet); every command in it was run locally. Update this line at the end of every phase.
+- Phase: **P1 complete (verified locally); P2 not started.** P0 (Docker 29.8.1, Zeek 9.0.0 pinned, `scripts/check_worker_sandbox.sh` 7/7: non-root, read-only FS, CapEff=0 + no-new-privileges, no DNS/TCP egress, read-only uploads) still passes after P1. P1 verified 2026-10-04: `python -m app.cli analyze` runs validate → Zeek → normalise (8 Parquet tables) → capture profile + warnings. Tested on a real generated PCAP and PCAPNG in the real worker image (read-only FS, no network, cap_drop ALL); truncated, empty, non-PCAP and gzip inputs; and across the real API → worker → API containers (`scripts/e2e_p1.sh`). Tests: 132 pass on Linux/Python 3.13 with real Zeek (on Windows 125 pass and 7 real-Zeek tests skip), ~99% coverage; ruff and `mypy --strict` clean. **Caveats:** the DB-backed job queue (`jobs` table, lease loop) and the upload HTTP endpoint belong to P3/P6, so P1 records lifecycle in `status.json`; `.github/workflows/ci.yml` has never run on GitHub (no remote), though every command in it was run locally; x509/ssh/ftp/weird normalisation is unit-tested on synthetic Zeek-format lines but no fixture capture exercises those logs through real Zeek; only fixture-sized captures have been run (NFR-01 not measured); profile warning thresholds in `config/profile.yaml` are unmeasured initial defaults. Update this line at the end of every phase.
 - Gate G1 (anomaly scorer): not run.
 - Gate G2 (LLM narrative): not run.
 - Docs now live in `docs/` (done in P0).
@@ -37,7 +37,7 @@ upload (magic bytes, size cap, SHA-256)
 
 ## Commands
 
-Verified in P0 unless marked planned. On Windows, add `C:/Program Files/Docker/Docker/resources/bin` to PATH for the session. The dev stack needs `cp .env.example .env` first.
+Verified in P0/P1 unless marked planned. On Windows, add `C:/Program Files/Docker/Docker/resources/bin` to PATH for the session. The dev stack needs `cp .env.example .env` first.
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build   # dev stack (API on 127.0.0.1:8000)
@@ -46,9 +46,13 @@ docker compose run --rm worker zeek --version                               # pi
 ./scripts/check_worker_sandbox.sh                                           # worker sandbox + egress checks
 cd backend && uv sync --frozen                                              # install from lockfile
 cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy app   # lint + types
-cd backend && uv run pytest                                                 # tests (coverage on by default)
-# planned (P1+):
-tracewright analyze <pcap> --out <dir>                                      # CLI pipeline (argparse)
+cd backend && uv run pytest                                                 # unit tests (real-Zeek tests skip off-container)
+# full suite incl. real-Zeek tests, in the worker test image (no network, read-only):
+docker build --target test -t tracewright-worker-test -f backend/Dockerfile.worker backend
+docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL --security-opt no-new-privileges:true -e POSTGRES_DB=x -e POSTGRES_USER=x -e POSTGRES_PASSWORD=x -v "$PWD/config:/config:ro" tracewright-worker-test pytest -p no:cacheprovider -q
+./scripts/e2e_p1.sh <capture.pcap> [<invalid-file>]                         # P1 end-to-end across the real containers
+docker compose run --rm -v "$PWD/x.pcap:/in/x.pcap:ro" worker python -m app.cli analyze /in/x.pcap --out /data/artifacts/x
+# planned (P3+):
 python eval/run_detectors.py --split dev                                    # detector eval (dev only while tuning)
 ```
 

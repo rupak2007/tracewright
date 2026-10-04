@@ -1,0 +1,13 @@
+# Network context (FR-07, architecture §6). Edit for the environment a capture came from.
+# internal_cidrs default to RFC 1918; everything else is "external".
+internal_cidrs:
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+known_hosts:
+  scanners: []          # authorised scanners (e.g. vulnerability scanners)
+  resolvers: []         # internal DNS resolvers
+  backup_servers: []    # destinations whose large uploads are expected (suppress DET-EXFIL)
+allowlist:
+  domains: []           # registered domains suppressed for DET-DNSTUN / DET-BEACON
+  periodic_ports: [123] # NTP is excluded from DET-BEACON by default

@@ -38,6 +38,15 @@ jobs:
         run: docker compose run --rm -T worker zeek --version | tee /dev/stderr | grep -x "zeek version 9.0.0"
       - name: Worker sandbox (non-root, read-only, no caps, no egress)
         run: ./scripts/check_worker_sandbox.sh
+      - name: Full test suite with real Zeek (worker test image, no network, read-only)
+        run: |
+          docker build --target test -t tracewright-worker-test -f backend/Dockerfile.worker backend
+          docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL             --security-opt no-new-privileges:true -e POSTGRES_DB=x -e POSTGRES_USER=x             -e POSTGRES_PASSWORD=x -v "$PWD/config:/config:ro"             tracewright-worker-test pytest -p no:cacheprovider -q
+      - name: P1 end-to-end (API stores, worker parses, API reads back)
+        run: |
+          mkdir fx && chmod 777 fx
+          docker run --rm -v "$PWD/fx:/out" tracewright-worker-test python tests/fixtures/make_fixtures.py /out
+          ./scripts/e2e_p1.sh fx/basic.pcap fx/basic.pcap.gz
       - name: Stack comes up and /health answers
         run: |
           docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait

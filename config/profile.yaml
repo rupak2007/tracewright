@@ -1,0 +1,13 @@
+# Capture-profile warning thresholds (FR-06). Initial defaults chosen for P1: they are NOT
+# measured or tuned values. Detector thresholds (P3) live in config/detectors.yaml.
+beacon_min_events: 10                  # PRD §10: detection needs capture span >= 10 x interval
+beacon_target_interval_s: 300          # warn if the capture cannot support 5-minute beacons
+one_sided_no_handshake_share: 0.5      # share of TCP conns whose history has neither S nor h
+one_sided_min_tcp_connections: 20
+weird_share_of_connections: 0.05
+weird_min_count: 10
+snaplen_min_bytes: 1518                # below this, full Ethernet frames cannot have been captured
+small_host_population_min_internal: 5
+weak_exfil_baseline_min_pairs: 20      # architecture §7.5
+normalise_skipped_share: 0.01          # architecture §21: > 1% skipped lines -> warning
+top_talkers: 10

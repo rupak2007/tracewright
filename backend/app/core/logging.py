@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, TextIO
 
 _CONTEXT_KEYS = ("investigation_id", "job_id", "stage")
 _EXTRA_KEYS = ("duration_ms",)
@@ -47,8 +47,8 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, default=str)
 
 
-def configure_logging(level: str = "INFO") -> None:
-    handler = logging.StreamHandler(sys.stdout)
+def configure_logging(level: str = "INFO", stream: TextIO | None = None) -> None:
+    handler = logging.StreamHandler(stream if stream is not None else sys.stdout)
     handler.setFormatter(JsonFormatter())
     root = logging.getLogger()
     root.handlers[:] = [handler]

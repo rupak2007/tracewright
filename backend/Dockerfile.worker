@@ -1,7 +1,7 @@
 # Worker image: the ONLY place capture bytes are parsed (Zeek, tcpdump, editcap, capinfos).
 # Base: pinned Zeek LTS (Debian 13 / Python 3.13). Pin by tag AND digest (SEC-10).
 # Runs non-root; compose adds read-only FS, cap_drop ALL, no-new-privileges and an egress-less network.
-FROM zeek/zeek:9.0.0@sha256:70733f4e540ba1608e37e00c6a93d009f79734262c9ec2ba09d90aa9abc16de5
+FROM zeek/zeek:9.0.0@sha256:70733f4e540ba1608e37e00c6a93d009f79734262c9ec2ba09d90aa9abc16de5 AS base
 
 ARG ZEEK_VERSION=9.0.0
 ARG UV_VERSION=0.12.23
@@ -16,6 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
+    CONFIG_DIR=/config \
     PATH="/opt/venv/bin:/usr/local/zeek/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # editcap/capinfos ship in wireshark-common on Debian.
@@ -36,6 +37,22 @@ RUN python3 -m venv /opt/uv \
  && /opt/uv/bin/uv sync --frozen --no-dev --no-install-project \
  && rm -rf /root/.cache
 
+# Test image (not the default target): the real Zeek/capinfos binaries plus dev dependencies and
+# tests, so integration tests run against exactly the tools the worker ships.
+#   docker build --target test -t tracewright-worker-test -f backend/Dockerfile.worker backend
+FROM base AS test
+ARG UID=10001
+RUN /opt/uv/bin/uv sync --frozen --no-install-project && rm -rf /root/.cache
+COPY app ./app
+COPY tests ./tests
+ENV COVERAGE_FILE=/tmp/.coverage
+USER ${UID}:${UID}
+ENTRYPOINT []
+CMD ["pytest", "-p", "no:cacheprovider", "-m", "requires_zeek"]
+
+# Default (last) target: the worker.
+FROM base AS worker
+ARG UID=10001
 COPY app ./app
 
 USER ${UID}:${UID}

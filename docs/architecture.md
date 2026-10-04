@@ -154,7 +154,7 @@ Detectors are pure functions of their inputs (no DB access, no I/O), which makes
    - PCAPNG: `0a 0d 0d 0a`
    Reject everything else (including gzip `1f 8b`). Compute SHA-256 while streaming. Rename to `<uuid>.pcap[ng]`. Check free disk space before accepting.
 2. **Zeek parse (worker, stage S1).**
-   `zeek -C -r <file> LogAscii::use_json=T <site-policy>` in a per-investigation directory, with a stage timeout (default 15 min). `-C` ignores checksum errors common in captures from offloading NICs. The site policy loads only the analyzers needed (conn, dns, http, ssl, x509, ssh, ftp, weird) and keeps password capture disabled (`FTP::default_capture_password` and `HTTP::default_capture_password` remain false).
+   `zeek -C -D -r <file> <site-policy> LogAscii::use_json=T` in a per-investigation directory, with a stage timeout (default 15 min). `-C` ignores checksum errors common in captures from offloading NICs; `-D` zeroes Zeek's random seeds so connection UIDs, and therefore all downstream output, repeat across runs (NFR-02; verified in P1 on Zeek 9.0.0, where unseeded runs produced different UIDs). The child process receives a minimal environment (no database credentials) and stderr is written to `logs/zeek.stderr.txt`. *Observed on Zeek 9.0.0 / P1:* a truncated PCAP makes Zeek exit 1 (`failed to read a packet … truncated dump file`) after writing partial logs, so it is reported as `failed` at `zeek_parse`; a valid capture with zero packets exits 0 with no `conn.log` (reported as `completed` with `NOTHING_TO_ANALYSE`). `capinfos` reads gzip files transparently, so compressed-file rejection must happen in validation, before any tool runs. The site policy loads only the analyzers needed (conn, dns, http, ssl, x509, ssh, ftp, weird) and keeps password capture disabled (`FTP::default_capture_password` and `HTTP::default_capture_password` remain false).
 3. **Packet counts.** `capinfos -M` for packet count, first/last timestamp, snaplen, and link type (used in the profile and warnings).
 4. **Normalisation (S2).** Read JSON lines → typed pandas DataFrames → Parquet. Column names follow Zeek field names (`id.orig_h` → `orig_h`). Timestamps stored as UTC; durations as float seconds; missing numeric fields as nulls (not zero).
 
@@ -529,6 +529,8 @@ services:
 - The worker image is built from a pinned Zeek LTS image plus Python (the minor version provided by that image's Debian base, ≥ 3.11), `tcpdump`, and the Wireshark CLI utilities (`editcap`, `capinfos`). The API image uses the same Python minor version.
 - Ollama models are pulled once with a setup command before use (the container has no egress afterwards).
 - A `docker-compose.dev.yml` override mounts source code and enables reload.
+- `config/` is bind-mounted read-only at `/config` in the worker (`CONFIG_DIR=/config`). `Dockerfile.worker` has a non-default `test` target (dev dependencies + tests on top of the worker image) used to run integration tests against the real Zeek/capinfos binaries.
+- P1 deviation, recorded: the DB-backed `jobs` table and lease loop are not part of P1 (plan P3/P6). Until then the worker is driven by `python -m app.cli analyze`, and the investigation lifecycle (`running` → `completed`/`failed`, stage, error code, per-stage timings) is written to `artifacts/<id>/status.json`, mirroring the planned `investigations.status/stage/error` columns.
 
 ## 19. Security boundaries & threat model
 

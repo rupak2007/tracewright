@@ -4,8 +4,8 @@ Offline network incident investigation: one PCAP in, Zeek parsing, five rule/sta
 correlated incidents mapped to ATT&CK, with evidence, a "why this fired" panel and a packet slice for
 Wireshark. The analyst always makes the decision.
 
-**Status: phase P0 (foundations).** There is no detection pipeline yet. See `CLAUDE.md` for the current
-phase and `docs/plan.md` for the roadmap. The full README (results, demo, limitations) is written in P10.
+**Status: phase P1 (ingestion, Zeek parsing, normalisation, capture profile).** There are no detectors yet. See `CLAUDE.md` for the
+current phase and `docs/plan.md` for the roadmap. The full README (results, demo, limitations) is written in P10.
 
 ## Quick start (dev)
 
@@ -24,6 +24,18 @@ Backend checks (needs [uv](https://docs.astral.sh/uv/)):
 cd backend
 uv sync --frozen
 uv run ruff check . && uv run ruff format --check . && uv run mypy app && uv run pytest
+```
+
+Analyse a capture (inside the worker container, the only place capture bytes are parsed):
+
+```bash
+docker compose run --rm -v "$PWD/some.pcap:/in/some.pcap:ro" worker python -m app.cli analyze /in/some.pcap --out /data/artifacts/demo
+```
+
+Full P1 flow across the real containers (API stores the upload under a UUID, worker parses, API reads back):
+
+```bash
+./scripts/e2e_p1.sh path/to/capture.pcap path/to/invalid-file
 ```
 
 Worker sandbox verification (non-root, read-only FS, no capabilities, no egress):

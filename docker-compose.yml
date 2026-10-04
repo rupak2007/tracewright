@@ -42,6 +42,7 @@ services:
     volumes:
       - uploads:/data/uploads:ro
       - artifacts:/data/artifacts
+      - ./config:/config:ro
     env_file: .env
     depends_on:
       db:
