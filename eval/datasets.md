@@ -3,14 +3,14 @@
 Source and SHA-256 of every capture used for tuning or evaluation. Rule (`docs/instruction.md` §3):
 nothing below may be edited to improve a metric; a changed checksum means a different capture.
 
-## Status (2026-10-04, end of the P2 partial milestone)
+## Status (2026-10-08, benign corpus recorded and frozen; attack corpus still missing)
 
 | Corpus | Status |
 |---|---|
 | LAB attack captures | **Not recorded** — attack scenarios are deferred (see `lab/README.md`) |
-| LAB hard negatives | Generators implemented; **no committed run yet** |
+| LAB hard negatives | **Recorded**: 6 verified runs (b01-b06), 7 of 8 classes in both splits; `AUTOMATION_SSH` has no generator and no capture |
 | LAB-HOLDOUT | **Not recorded** — deferred with the attack scenarios |
-| BENIGN (lab benign-only runs, ≥ 4 h) | **Not recorded** — 0.00 h committed |
+| BENIGN (lab runs with hard-negative traffic only, ≥ 4 h) | **Recorded**: 4.53 h (6 runs, 3 `dev`, 3 `test`); satisfies the 4 h requirement |
 | BENIGN (CICIDS2017 Monday) | **Deferred by decision** (disk: 39 GB free at decision time; the full file is ~10 GB) |
 | CIC-ATTACK (CICIDS2017 attack days) | **Deferred by decision** (first item cut in `docs/plan.md` if time slips) |
 
@@ -45,7 +45,8 @@ Externally supplied captures (registered with `python -m lab.register_external`,
 recorded the same way: `run.json` carries `origin: external`, the supplier's provenance claim and the
 SHA-256 computed at registration. They count only after `python -m lab.verify_run` passes.
 
-Current committed runs: **none**. Regenerate this table's contents with:
+Current committed runs: the six benign lab runs below (recorded 2026-10-04 to 2026-10-08, frozen in
+`eval/splits.yaml`). Regenerate the requirement view with:
 
 ```bash
 python -m eval.splits report
@@ -53,6 +54,36 @@ python -m eval.splits report
 
 | Lab network config | `config/network.lab.yaml` (172.20.0.0/24 internal, 172.21.0.0/24 external) |
 |---|---|
+
+### Frozen benign lab corpus (`lab/corpus/benign_v1.json`)
+
+Recorded with `python -m lab.record_corpus`; every run was analysed by the P1 worker and passed
+`lab.verify_run` (0 Zeek `missed_bytes` in every labelled connection). 3 verified episodes per run, 18 in
+total, all `hard_negative`. Capture bytes live in `data/lab/<run_id>/capture.pcap` (not committed).
+
+| Run | Split | Seed | Scenarios | Duration (s) | Capture (MB) | Capture SHA-256 |
+|---|---|---|---|---|---|---|
+| b01 | test | 1100 | ntp+monitoring_heartbeat+cdn_browsing | 2706 | 14.8 | `97dce651f3b1faac3efdee3c84e7d46b4109c79c7ee9bdc2f8cb61be0eac1a62` |
+| b02 | dev | 1200 | ntp+monitoring_heartbeat+cdn_browsing | 2708 | 14.1 | `88b8ddb0dd769a3a0733b46defbf27b84a059d9ef6b3e55fb75900357ea5a4d9` |
+| b03 | test | 1300 | rsync_backup+package_update+video_streaming | 2748 | 317.9 | `5f248632fbf10d1070dcada335d7fb0e73b8897926b86c80d84d7e550c18550a` |
+| b04 | dev | 1400 | rsync_backup+package_update+video_streaming | 2733 | 426.8 | `10217f085c3b1eabdff355d534a10bc4d0afb959c1400df8d6f857f4f6379185` |
+| b05 | dev | 1500 | cloud_sync_upload+ntp+rsync_backup | 2706 | 252.9 | `645cd502a353ed3c984e45dfcc785e1848ff46ab2a4497e081652a9633e31dd2` |
+| b06 | test | 1600 | cloud_sync_upload+ntp+rsync_backup | 2706 | 358.0 | `16d6ddf5f8145f62e741efcbce5896ec9e9188af76af56e32fbeaba8d9a1bbe8` |
+
+Total 4.53 h, 1.38 GB of captures. Zeek connection counts: 7016, 6678, 276, 354, 52, 40 (bulk-transfer runs
+have few, very large connections). `python -m eval.splits report`: **10 of 27 requirements met** (the 7
+benign hard-negative classes in both splits, benign hours, benign-only runs in `dev` and in `test`);
+**17 unmet**: all attack classes and `DNSTUN` tools (14), `AUTOMATION_SSH`, LAB-HOLDOUT families and
+LAB-HOLDOUT test captures. Nothing in this table came from CICIDS2017.
+
+Recording problems found and fixed (evidence kept in the gitignored `data/rejected/`; the corpus plan was not
+changed): (1) b03/b04 first recorded with the default tcpdump buffer lost packets on fast bulk transfers (Zeek
+`missed_bytes` 38.8 MB / 95 MB) although labels verified; the buffer was raised and `lab.checks` now fails any
+episode with missed bytes. (2) b05 first recorded with its `CLOUD_SYNC_UPLOAD` episode labelled with the lab-net
+address instead of the ext-net address the packets carry; verification rejected it, the label code was fixed.
+All six committed runs were recorded after these fixes except b01/b02, which were recorded earlier and have 0
+missed bytes and correct labels. The `lab_runner` run.json records `capture_bytes` and `duration_s` (wall clock
+including container start-up, so 4.53 h is slightly above the planned 6 x 2700 s = 4.5 h).
 
 ## Corpus source assessment (2026-10-04)
 

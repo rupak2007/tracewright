@@ -1,0 +1,12 @@
+{
+  "analysis_connections": 40,
+  "analysis_zeek_version": "9.0.0",
+  "capture_sha256": "16d6ddf5f8145f62e741efcbce5896ec9e9188af76af56e32fbeaba8d9a1bbe8",
+  "labels_sha256": "b5126c520eb8a3cb6df4b35ef0b6e52431ae040be8b1aa27667cd78ab4bb2bd2",
+  "passed": true,
+  "problems": [],
+  "run_id": "b06",
+  "run_json_sha256": "3be394f14286ac2157bf7ddc1fc52d6ee0115e9edf5b56fe02376a2b448525ee",
+  "schema_version": 1,
+  "verified_at": "2026-10-07T19:34:07.260Z"
+}

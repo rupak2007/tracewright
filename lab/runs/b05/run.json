@@ -1,0 +1,47 @@
+{
+  "benign_only": true,
+  "capture_bytes": 252871149,
+  "capture_sha256": "645cd502a353ed3c984e45dfcc785e1848ff46ab2a4497e081652a9633e31dd2",
+  "clients": [],
+  "duration_s": 2706.4,
+  "end": "2026-10-07T18:48:32.778Z",
+  "holdout": false,
+  "network_config": "network.lab.yaml",
+  "origin": "lab_runner",
+  "provenance": null,
+  "run_id": "b05",
+  "scenarios": [
+    {
+      "client": "client1",
+      "duration_s": 2700.0,
+      "params": {
+        "every_s": 900,
+        "mb": 60
+      },
+      "scenario": "cloud_sync_upload"
+    },
+    {
+      "client": "client2",
+      "duration_s": 2700.0,
+      "params": {
+        "interval_s": 64
+      },
+      "scenario": "ntp"
+    },
+    {
+      "client": "client3",
+      "duration_s": 2700.0,
+      "params": {
+        "every_s": 450,
+        "mb": 10
+      },
+      "scenario": "rsync_backup"
+    }
+  ],
+  "schema_version": 1,
+  "seed": 1500,
+  "start": "2026-10-07T18:03:26.377Z",
+  "tool_versions": {
+    "python": "3.12.0"
+  }
+}

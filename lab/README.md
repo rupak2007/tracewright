@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **P2 partially implemented.** The benign skeleton, label schema and checking/split tooling exist. Attack scenarios, held-out families and the full corpus do **not**. |
+| Status | **P2 partially complete.** The benign skeleton, tooling and the six-run benign corpus (4.53 h, frozen in `eval/splits.yaml`) exist. Attack scenarios, held-out families, `AUTOMATION_SSH` and their captures do **not**; `python -m eval.splits report` shows 10 of 27 requirements met. |
 | Implements | `docs/PRD.md` §17, `docs/architecture.md` §20.1, `docs/plan.md` P2, `eval/PROTOCOL.md` |
 | Purpose | Produce labelled captures (ground truth known by construction) to tune detectors on `dev` and measure on `test`. |
 
@@ -51,7 +51,8 @@ Labelled `hard_negative` (a detector finding on one is a false positive):
 * `eval/splits.py` — deterministic, append-only, stratified split assignment; integrity hashes of each run's
   `run.json`/`labels.jsonl`; `validate --against-git`; `report` compares the committed corpus to the P2
   acceptance numbers and states what is missing.
-* `eval/datasets.md` — provenance table (currently: nothing recorded).
+* `eval/datasets.md` — provenance table (the six frozen benign runs, with capture hashes).
+* `lab/record_corpus.py` + `lab/corpus/benign_v1.json` — the committed, resumable recording plan (b01–b06); `python -m lab.record_corpus lab/corpus/benign_v1.json [--runs b03]`.
 
 Verified (2026-10-04): short benign runs recorded through Docker + tcpdump, analysed by the P1 worker, and
 passed `lab.check_labels`; a deliberately corrupted label failed it. A plan may use each client once.
@@ -157,8 +158,8 @@ need an entry in `eval/REVISIONS.md` and user approval.
 * **LAB-HOLDOUT families** (`docs/PRD.md` §11/§17). Same: names registered, no capture supplied.
 * **Automation-SSH hard negative** (class registered; no scenario in the runner and no capture supplied).
 * **Attack-target hosts** (separate SSH/FTP/HTTP/file-server hosts) — not part of the benign skeleton.
-* **The corpus itself**: ≥ 4 h benign-only, ≥ 4 dev + ≥ 4 test episodes per class, ≥ 8 LAB-HOLDOUT test captures,
-  populated `eval/splits.yaml`. `python -m eval.splits report` shows 0 of the P2 requirements met.
+* **The rest of the corpus**: ≥ 4 dev + ≥ 4 test episodes per attack class, ≥ 8 LAB-HOLDOUT test captures,
+  `AUTOMATION_SSH`. The benign part is recorded and frozen (10 of 27 requirements met; 17 unmet).
 * **CICIDS2017** (Monday benign + attack days): deferred by decision; nothing downloaded.
 
 P2 is therefore **not complete**, and P3 must not start until the deferred items are done and the split

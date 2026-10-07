@@ -224,9 +224,12 @@ def test_manifest_round_trip_and_version_check(tmp_path: Path) -> None:
         splits.load_manifest(path)
 
 
-def test_shipped_manifest_is_valid_and_currently_empty() -> None:
+FROZEN_BENIGN_RUNS = ["b01", "b02", "b03", "b04", "b05", "b06"]
+
+
+def test_shipped_manifest_is_valid_and_holds_only_the_frozen_benign_runs() -> None:
     shipped = splits.load_manifest()
-    assert shipped["assigned"] == {}  # nothing recorded yet; see eval/datasets.md
+    assert sorted(shipped["assigned"]) == FROZEN_BENIGN_RUNS  # see eval/datasets.md
     assert splits.validate(shipped, splits.load_runs()) == []
 
 
@@ -280,7 +283,7 @@ def test_cli_report_exit_codes(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     assert splits.main(["report"]) == 0
-    assert "0/27 requirements met; 27 unmet" in capsys.readouterr().out
+    assert "10/27 requirements met; 17 unmet" in capsys.readouterr().out
     assert splits.main(["report", "--require-complete"]) == 1
     assert splits.main(["validate"]) == 0
 
@@ -369,9 +372,16 @@ def test_hidden_staging_directories_are_ignored(runs_dir: Path) -> None:
     assert set(splits.load_runs(runs_dir)) == {"r1"}
 
 
-def test_the_shipped_manifest_is_still_empty_until_real_validated_captures_exist() -> None:
-    assert splits.load_manifest()["assigned"] == {}
-    assert not [p for p in splits.RUNS_DIR.iterdir() if p.is_dir()]  # no run records committed
+def test_the_shipped_manifest_holds_only_verified_benign_runs_and_no_attack_classes() -> None:
+    manifest_runs = splits.load_manifest()["assigned"]
+    assert sorted(manifest_runs) == FROZEN_BENIGN_RUNS
+    assert sorted(p.name for p in splits.RUNS_DIR.iterdir() if p.is_dir()) == FROZEN_BENIGN_RUNS
+    runs = splits.load_runs()
+    for run_id in FROZEN_BENIGN_RUNS:
+        assert runs[run_id].eligible and runs[run_id].meta.origin == "lab_runner"
+        assert {e.kind for e in runs[run_id].episodes} == {"hard_negative"}  # no attack, no holdout
+    splits_used = {manifest_runs[r]["split"] for r in FROZEN_BENIGN_RUNS}
+    assert splits_used == {"dev", "test"}  # run-level separation: each run sits in exactly one
 
 
 # ---------------------------------------------- leakage guard and requirement sources
