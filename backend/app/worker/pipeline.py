@@ -6,6 +6,9 @@ Runs in the worker only. Writes under `out_dir`:
     logs/              Zeek stderr
     profile.json       capture profile + data-quality warnings (+ suppressed finding counts)
     findings.json      detector findings, thresholds applied, suppression counts (stage S4)
+    incidents.json     ranked incidents, links, ATT&CK refs, evidence IDs, summaries (S6-S8)
+    report.md          Markdown report with evidence IDs
+    manifest.json      versions, config hashes and counts that produced the result
     status.json        lifecycle: running -> completed | failed, with stage, error and timings
 
 status.json mirrors the investigations.status/stage/error columns (architecture §15); the DB-backed
@@ -18,6 +21,7 @@ import os
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from importlib import metadata
 from pathlib import Path
 from typing import Literal
 
@@ -26,21 +30,24 @@ from pydantic import BaseModel
 from app.core.config import PipelineSettings
 from app.core.errors import IngestError, StartupCheckError, TracewrightError
 from app.core.logging import log_context
+from app.correlate.runner import correlate
 from app.detect.base import DetectorInput
-from app.detect.config import load_detectors_config
 from app.detect.runner import run_detectors
 from app.ingest.capinfos import run_capinfos
 from app.ingest.normalise import normalise_logs
 from app.ingest.validate import validate_file
 from app.ingest.zeek import run_zeek
-from app.profile.context import load_network_context
 from app.profile.profile import CaptureProfile, build_profile
-from app.profile.warnings import load_profile_config
+from app.report.assemble import assemble_analysis
+from app.report.model import AnalysisOutput
+from app.report.render import render_markdown
+from app.worker.analysis_config import load_analysis_config
+from app.worker.manifest import build_manifest
 from app.worker.startup import check_zeek
 
 logger = logging.getLogger(__name__)
 
-STAGES = ("validate", "zeek_parse", "normalise", "profile", "detect")
+STAGES = ("validate", "zeek_parse", "normalise", "profile", "detect", "correlate", "explain")
 
 
 class AnalysisStatus(BaseModel):
@@ -51,6 +58,13 @@ class AnalysisStatus(BaseModel):
     sha256: str | None = None
     zeek_version: str | None = None
     stage_ms: dict[str, int] = {}
+
+
+def _package_version() -> str:
+    try:
+        return metadata.version("tracewright")
+    except metadata.PackageNotFoundError:
+        return "0+unknown"
 
 
 def _write_json_atomic(path: Path, payload: str) -> None:
@@ -83,9 +97,7 @@ class _Run:
 def analyze_capture(pcap: Path, out_dir: Path, settings: PipelineSettings) -> AnalysisStatus:
     """Run S1-S4. Configuration problems raise; capture/tool problems end in status 'failed'."""
     config_dir = settings.config_dir
-    ctx = load_network_context(config_dir / "network.yaml")
-    profile_cfg = load_profile_config(config_dir / "profile.yaml")
-    detectors_cfg = load_detectors_config(config_dir / "detectors.yaml")
+    acfg = load_analysis_config(settings)
     site_script = config_dir / "zeek" / "site.zeek"
 
     if out_dir.exists() and any(out_dir.iterdir()):
@@ -121,19 +133,52 @@ def analyze_capture(pcap: Path, out_dir: Path, settings: PipelineSettings) -> An
                 run.status.zeek_version or "unknown",
                 tables,
                 stats,
-                ctx,
-                profile_cfg,
+                acfg.network,
+                acfg.profile,
             )
             _write_json_atomic(out_dir / "profile.json", profile.model_dump_json(indent=2))
         with run.stage("detect"):
             report = run_detectors(
-                DetectorInput(tables, ctx, detectors_cfg, profile.capture.duration_s),
+                DetectorInput(tables, acfg.network, acfg.detectors, profile.capture.duration_s),
                 investigation_id=f"inv-{(run.status.sha256 or 'local')[:12]}",
             )
             _write_json_atomic(out_dir / "findings.json", report.model_dump_json(indent=2))
             # FR-13: suppressed findings are reported in the capture profile, never dropped silently
             profile = profile.model_copy(update={"suppressed_findings": report.suppressed})
             _write_json_atomic(out_dir / "profile.json", profile.model_dump_json(indent=2))
+        with run.stage("correlate"):
+            correlation = correlate(report.findings, acfg.correlation)
+        with run.stage("explain"):
+            analysis = assemble_analysis(
+                investigation_id=report.investigation_id,
+                capture_sha256=run.status.sha256 or "",
+                report=report,
+                correlation=correlation,
+                tables=tables,
+                mapping=acfg.mapping,
+                cards=acfg.cards,
+                playbooks=acfg.playbooks,
+            )
+            _write_json_atomic(out_dir / "incidents.json", analysis.model_dump_json(indent=2))
+            (out_dir / "report.md").write_text(
+                render_markdown(analysis, profile), encoding="utf-8", newline="\n"
+            )
+            manifest = build_manifest(
+                version=_package_version(),
+                zeek_version=run.status.zeek_version or "unknown",
+                capture_sha256=run.status.sha256 or "",
+                attack_version=acfg.pins.attack_version,
+                attack_bundle_sha256=acfg.pins.bundle_sha256,
+                detector_versions=report.detector_versions,
+                config_dir=config_dir,
+                counts={
+                    "findings": len(report.findings),
+                    "incidents": len(analysis.incidents),
+                    "links": len(analysis.links),
+                    "suppressed_findings": report.suppressed_total,
+                },
+            )
+            _write_json_atomic(out_dir / "manifest.json", manifest.model_dump_json(indent=2))
     except TracewrightError as exc:
         run.status.status = "failed"
         run.status.error_code, run.status.error_message = exc.code, exc.message
@@ -147,6 +192,12 @@ def analyze_capture(pcap: Path, out_dir: Path, settings: PipelineSettings) -> An
         run.status.status = "completed"
     run.save()
     return run.status
+
+
+def read_analysis(out_dir: Path) -> AnalysisOutput:
+    return AnalysisOutput.model_validate(
+        json.loads((out_dir / "incidents.json").read_text("utf-8"))
+    )
 
 
 def read_profile(out_dir: Path) -> CaptureProfile:

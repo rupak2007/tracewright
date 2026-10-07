@@ -10,7 +10,7 @@ from pathlib import Path
 from app.core.config import get_pipeline_settings
 from app.core.errors import TracewrightError
 from app.core.logging import configure_logging
-from app.worker.pipeline import analyze_capture, read_profile
+from app.worker.pipeline import analyze_capture, read_analysis, read_profile
 
 EXIT_OK, EXIT_ANALYSIS_FAILED, EXIT_USAGE = 0, 1, 2
 
@@ -46,6 +46,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         summary["warnings"] = [w.code for w in profile.warnings]
         findings = json.loads((args.out / "findings.json").read_text(encoding="utf-8"))
         summary["findings"] = len(findings["findings"])
+        analysis = read_analysis(args.out)
+        summary["incidents"] = [
+            {
+                "id": d.incident.id,
+                "severity": d.incident.severity_label,
+                "score": d.incident.severity_score,
+                "entity": d.incident.primary_entity,
+                "types": d.incident.types,
+                "links": [f"{lk.type}:{lk.from_incident}->{lk.to_incident}" for lk in d.links],
+            }
+            for d in analysis.incidents
+        ]
+        summary["report"] = str(args.out / "report.md")
     else:
         summary["error"] = {"code": status.error_code, "message": status.error_message}
     print(json.dumps(summary))

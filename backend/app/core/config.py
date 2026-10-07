@@ -21,6 +21,7 @@ class PipelineSettings(BaseSettings):
     min_free_disk_bytes: int = Field(default=1024**3, ge=0)
 
     config_dir: Path = Path("config")
+    knowledge_dir: Path = Path("knowledge")  # playbooks/ and cards/<attack version>/
     zeek_bin: str = "zeek"
     # Baked in at image build time (Dockerfile.worker) so a drifted base image fails loudly.
     zeek_expected_version: str | None = None

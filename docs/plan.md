@@ -160,6 +160,8 @@
 
 **Objective:** the complete deterministic product, usable from the CLI (M2).
 
+**Status (2026-10-08):** implemented and tested on synthetic evidence: correlation, links, severity, pinned ATT&CK 19.2 bundle + cards + startup-validated mapping, five playbooks, evidence IDs, templates, Markdown report, run manifest, CLI output of ranked incidents. The documented storyline (TARGET_LATER_ACTIVE + SHARED_EXTERNAL_PEER) is exercised by `tests/integration/test_p4_pipeline.py` on synthetic Zeek-format logs. **Pending, needs real captures:** the `demo.pcap` multi-stage scenario (requires attack traffic, which this repository does not generate).
+
 **Tasks**
 - `correlate/incidents.py` (entity rules, gap grouping), `correlate/links.py` (3 link types), `correlate/severity.py` (documented formula).
 - `scripts/fetch_attack.py` (pinned version + checksum), `attack/stix.py` loader, `attack/mapping.py` with startup validation, `scripts/build_cards.py`.

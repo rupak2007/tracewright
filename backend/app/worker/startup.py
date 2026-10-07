@@ -5,7 +5,7 @@ import subprocess  # fixed argv, shell=False; never fed capture-derived values
 from pathlib import Path
 
 from app.core.config import PipelineSettings, Settings
-from app.core.errors import StartupCheckError
+from app.core.errors import ConfigError, StartupCheckError
 
 _ZEEK_VERSION_RE = re.compile(r"^zeek version (\S+)$")
 _PROCESS_TIMEOUT_S = 10
@@ -46,3 +46,13 @@ def check_data_dirs(settings: Settings) -> None:
     for name, path in (("uploads", settings.uploads_dir), ("artifacts", settings.artifacts_dir)):
         if not Path(path).is_dir():
             raise StartupCheckError(f"{name} directory {path} does not exist")
+
+
+def check_attack_mapping(settings: PipelineSettings) -> str:
+    """Refuse to start with a revoked, deprecated, missing or drifted ATT&CK mapping."""
+    from app.worker.analysis_config import load_analysis_config
+
+    try:
+        return load_analysis_config(settings).pins.attack_version
+    except ConfigError as exc:
+        raise StartupCheckError(exc.message) from exc

@@ -11,7 +11,7 @@ from app.core.config import get_settings
 from app.core.errors import StartupCheckError
 from app.core.logging import configure_logging
 from app.db.session import check_connection, make_engine
-from app.worker.startup import check_data_dirs, check_zeek
+from app.worker.startup import check_attack_mapping, check_data_dirs, check_zeek
 
 logger = logging.getLogger("app.worker")
 
@@ -32,6 +32,7 @@ def main() -> int:
     engine = make_engine(settings)
     try:
         version = check_zeek(settings)
+        attack_version = check_attack_mapping(settings)
         check_data_dirs(settings)
         check_connection(engine)
     except StartupCheckError as exc:
@@ -40,7 +41,7 @@ def main() -> int:
     except SQLAlchemyError as exc:
         logger.error("startup check failed: database unreachable (%s)", type(exc).__name__)
         return 1
-    logger.info("worker ready (idle); zeek %s", version)
+    logger.info("worker ready (idle); zeek %s, ATT&CK %s", version, attack_version)
 
     stop.wait()
     engine.dispose()

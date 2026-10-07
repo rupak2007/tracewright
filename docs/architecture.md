@@ -342,6 +342,16 @@ mappings:
 - **Startup validation:** every ID must exist in the pinned bundle and must not be revoked or deprecated; failure stops the worker with a clear error. A unit test enforces the same.
 - Mapping is **"consistent with"**, never attribution.
 
+### 10.1 Implementation notes (P4)
+
+Stages after the detectors: `correlate` (S6, `app/correlate/`: gap grouping, three typed links, the §9 severity formula, constants in `config/correlation.yaml`) and `explain` (S7-S8: ATT&CK references, stable `E-n` evidence IDs, Jinja template summaries, Markdown report, run manifest). Outputs next to `findings.json`: `incidents.json` (ranked incidents with findings, techniques, cards, playbook IDs, evidence, summary, links), `report.md`, `manifest.json` (versions, config hashes and counts, no timestamps, so two runs write identical files).
+
+- **Pinned bundle and cards.** `scripts/fetch_attack.py` downloads `enterprise-attack-19.2.json` (54 MB, SHA-256 pinned in `config/attack.yaml`, stored under gitignored `data/attack/`); `scripts/build_cards.py` derives `knowledge/cards/19.2/` (8 cards + `index.json` recording the bundle version, checksum and each technique's revoked/deprecated flags). The worker validates `config/attack_mapping.yaml` against that index at startup and before every analysis (every ID present, none revoked or deprecated, mapping/index/pin versions and checksum equal), so the 54 MB file is not needed at runtime. A test checks the index against the real bundle whenever it has been downloaded.
+- **Mapping conditions** (`conditions:` in `config/attack_mapping.yaml`): PRD §10 gives no number for "high outbound name volume"; `1000000` bytes is an unmeasured initial default (tune on dev only). BEACON families use port lists (web: 80/443/8000/8080/8443, dns: 53); a TLS-name series is treated as web.
+- **Shared peer.** SHARED_EXTERNAL_PEER matches the destination exactly as the two findings record it (IP with IP, name with name); an IP-keyed beacon and a name-keyed exfil to the same server are not matched. Both findings in one incident produce no link row but still add T1041 and the severity bonus.
+- **Evidence.** Per incident: aggregates (finding metrics and thresholds) first, then up to 20 records per finding ordered by time; sentences cite the aggregate plus at most two records. Report text derived from the capture is markdown-escaped; `<`, `>`, `[`, `]`, `|`, backtick and `\` cannot form markup.
+- **Playbooks** (`knowledge/playbooks/DET-*.md`, IDs `K-PB-DET-*`) are hand-written; technique cards carry no detection text because the pinned bundle's techniques have no `x_mitre_detection` field.
+
 ## 11. Knowledge base
 
 No vector store. Knowledge is addressed by key.

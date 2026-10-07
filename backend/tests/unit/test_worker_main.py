@@ -23,6 +23,7 @@ def env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("POSTGRES_PASSWORD", "p")
     monkeypatch.setenv("UPLOADS_DIR", str(tmp_path))
     monkeypatch.setenv("ARTIFACTS_DIR", str(tmp_path))
+    monkeypatch.setattr(worker_main, "check_attack_mapping", lambda _s: "19.2")
     monkeypatch.setattr(worker_main.signal, "signal", lambda *_: None)
     monkeypatch.setattr(worker_main.threading, "Event", _ImmediateEvent)
     monkeypatch.setattr(worker_main, "configure_logging", lambda *_: None)
@@ -48,4 +49,16 @@ def test_main_fails_when_db_unreachable(env: None, monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setattr(worker_main, "check_zeek", lambda _s: "9.0.0")
     monkeypatch.setattr(worker_main, "check_connection", boom)
+    assert worker_main.main() == 1
+
+
+def test_main_fails_when_the_attack_mapping_is_invalid(
+    env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(_s: object) -> str:
+        raise StartupCheckError("T1046 is revoked")
+
+    monkeypatch.setattr(worker_main, "check_zeek", lambda _s: "9.0.0")
+    monkeypatch.setattr(worker_main, "check_attack_mapping", boom)
+    monkeypatch.setattr(worker_main, "check_connection", lambda _e: None)
     assert worker_main.main() == 1

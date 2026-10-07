@@ -17,6 +17,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     CONFIG_DIR=/config \
+    KNOWLEDGE_DIR=/knowledge \
     PATH="/opt/venv/bin:/usr/local/zeek/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # editcap/capinfos ship in wireshark-common on Debian.

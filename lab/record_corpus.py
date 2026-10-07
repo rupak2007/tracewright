@@ -33,7 +33,8 @@ def _stage_config(network_config: str) -> Path:
     (target / "zeek").mkdir(parents=True, exist_ok=True)
     shutil.copyfile(REPO / "config" / network_config, target / "network.yaml")
     shutil.copyfile(REPO / "config" / "profile.yaml", target / "profile.yaml")
-    shutil.copyfile(REPO / "config" / "detectors.yaml", target / "detectors.yaml")
+    for name in ("detectors.yaml", "correlation.yaml", "attack.yaml", "attack_mapping.yaml"):
+        shutil.copyfile(REPO / "config" / name, target / name)
     shutil.copyfile(REPO / "config" / "zeek" / "site.zeek", target / "zeek" / "site.zeek")
     return target
 
@@ -58,6 +59,8 @@ def analyse(run_id: str, network_config: str) -> Path:
             f"{capture_dir}:/in:ro",
             "-v",
             f"{cfg}:/labcfg:ro",
+            "-v",
+            f"{REPO / 'knowledge'}:/knowledge:ro",
             "-v",
             f"{out_root}:/out",
             "worker",

@@ -59,7 +59,15 @@ def test_happy_path_produces_all_artifacts(tmp_path: Path, config_dir: Path) -> 
     status = analyze_capture(_pcap(tmp_path), out, _settings(tmp_path, config_dir, ZEEK_OK))
     assert status.status == "completed" and status.error_code is None
     assert status.zeek_version == "9.0.0" and status.sha256 is not None
-    assert set(status.stage_ms) == {"validate", "zeek_parse", "normalise", "profile", "detect"}
+    assert set(status.stage_ms) == {
+        "validate",
+        "zeek_parse",
+        "normalise",
+        "profile",
+        "detect",
+        "correlate",
+        "explain",
+    }
     assert _status(out)["status"] == "completed"
     profile = read_profile(out)
     assert profile.connections == 2 and profile.zeek_version == "9.0.0"

@@ -12,6 +12,14 @@ if str(REPO_ROOT) not in sys.path:
 
 
 @pytest.fixture(autouse=True)
+def _knowledge_dir(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Playbooks and ATT&CK cards: the repo's knowledge/ (KNOWLEDGE_DIR inside the test image)."""
+    monkeypatch.setenv(
+        "KNOWLEDGE_DIR", os.environ.get("KNOWLEDGE_DIR", str(REPO_ROOT / "knowledge"))
+    )
+
+
+@pytest.fixture(autouse=True)
 def _clean_settings_cache() -> None:
     get_settings.cache_clear()
     get_pipeline_settings.cache_clear()

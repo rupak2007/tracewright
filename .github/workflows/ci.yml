@@ -47,7 +47,7 @@ jobs:
       - name: Full test suite with real Zeek (worker test image, no network, read-only)
         run: |
           docker build --target test -t tracewright-worker-test -f backend/Dockerfile.worker backend
-          docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL             --security-opt no-new-privileges:true -e POSTGRES_DB=x -e POSTGRES_USER=x             -e POSTGRES_PASSWORD=x -v "$PWD/config:/config:ro"             tracewright-worker-test pytest -p no:cacheprovider -q
+          docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL             --security-opt no-new-privileges:true -e POSTGRES_DB=x -e POSTGRES_USER=x             -e POSTGRES_PASSWORD=x -v "$PWD/config:/config:ro" -v "$PWD/knowledge:/knowledge:ro"             tracewright-worker-test pytest -p no:cacheprovider -q
       - name: P1 end-to-end (API stores, worker parses, API reads back)
         run: |
           mkdir fx && chmod 777 fx

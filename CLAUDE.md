@@ -49,7 +49,7 @@ cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy
 cd backend && uv run pytest                                                 # unit tests (real-Zeek tests skip off-container)
 # full suite incl. real-Zeek tests, in the worker test image (no network, read-only):
 docker build --target test -t tracewright-worker-test -f backend/Dockerfile.worker backend
-docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL --security-opt no-new-privileges:true -e POSTGRES_DB=x -e POSTGRES_USER=x -e POSTGRES_PASSWORD=x -v "$PWD/config:/config:ro" tracewright-worker-test pytest -p no:cacheprovider -q
+docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL --security-opt no-new-privileges:true -e POSTGRES_DB=x -e POSTGRES_USER=x -e POSTGRES_PASSWORD=x -v "$PWD/config:/config:ro" -v "$PWD/knowledge:/knowledge:ro" tracewright-worker-test pytest -p no:cacheprovider -q
 ./scripts/e2e_p1.sh <capture.pcap> [<invalid-file>]                         # P1 end-to-end across the real containers
 docker compose run --rm -v "$PWD/x.pcap:/in/x.pcap:ro" worker python -m app.cli analyze /in/x.pcap --out /data/artifacts/x
 python -m lab.run_lab --run-id smoke01 --plan client1:ntp:20 --plan client2:cdn_browsing:20   # benign lab smoke run (data/lab/, not promoted)
