@@ -108,7 +108,7 @@ def finding(
 ) -> Finding:
     """A minimal valid Finding for framework tests."""
     return Finding(
-        id="",
+        id=kw.get("fid", ""),
         investigation_id="",
         detector_id=f"DET-{type_}",
         detector_version="1.0.0",
@@ -117,11 +117,11 @@ def finding(
         secondary_entities=kw.get("secondary", []),
         start_ts=to_datetime(T0 + start),
         end_ts=to_datetime(T0 + (start if end is None else end)),
-        metrics={},
-        thresholds={},
-        confidence="high",
+        metrics=kw.get("metrics", {}),
+        thresholds=kw.get("thresholds", {}),
+        confidence=kw.get("confidence", "high"),
         severity_base=1.0,
         benign_causes=[],
-        evidence_refs=[],
-        evidence_count=0,
+        evidence_refs=kw.get("refs", []),
+        evidence_count=len(kw.get("refs", [])),
     )

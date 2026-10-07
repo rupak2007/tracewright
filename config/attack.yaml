@@ -1,0 +1,6 @@
+# Pinned MITRE ATT&CK Enterprise STIX 2.1 bundle (architecture §10). Fetched by scripts/fetch_attack.py
+# (setup time, outside the worker). The file lives under data/ (gitignored); its SHA-256 is pinned here.
+attack_version: "19.2"
+bundle_url: "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-19.2.json"
+bundle_path: "data/attack/enterprise-attack-19.2.json"
+bundle_sha256: "dc1639caa5501d720e280cf1cbd8fbe009884a0c9b3e6e9ed9d0c25166c3d8f4"

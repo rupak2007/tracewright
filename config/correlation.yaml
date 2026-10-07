@@ -1,0 +1,20 @@
+# Correlation and severity (architecture §9). Documented initial values, not measured ones.
+version: 1
+gap_s: 1800                      # a finding joins the current incident if start <= incident_end + gap
+
+severity:
+  base:                          # finding_score = base[type] * weight[confidence]
+    SCAN: 2
+    BRUTE: 3
+    DNSTUN: 4
+    BEACON: 4
+    EXFIL: 5
+    UNEXPLAINED_ANOMALY: 1
+  weight: {low: 0.5, medium: 0.75, high: 1.0}
+  extra_type_bonus: 0.5          # per additional distinct finding type in the incident
+  link_bonus: 1.0                # target side of TARGET_LATER_ACTIVE, or in a SHARED_EXTERNAL_PEER pair
+  cap: 10
+  buckets:                       # upper bounds (exclusive) of low, medium, high; else critical
+    low: 2.5
+    medium: 4.5
+    high: 6.5
