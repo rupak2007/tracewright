@@ -1,4 +1,4 @@
-"""DET-DNSTUN. All inputs are SYNTHETIC evidence tables (tests/detect_helpers.py), never captures."""
+"""DET-DNSTUN. All inputs are SYNTHETIC evidence tables (tests/detect_helpers.py)."""
 
 import base64
 import hashlib
