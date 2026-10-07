@@ -126,6 +126,8 @@
 
 **Objective:** five detectors with tests, persisted findings, and the first measured baseline (M1).
 
+**Status (2026-10-08):** started on explicit user instruction while the P2 attack/holdout corpus is still missing. Implemented: framework, five detectors, `config/detectors.yaml`, allowlist suppression with counts, stage S4 + `findings.json`, `eval/matching.py`, `eval/run_detectors.py` (dev only; refuses `test` until the corpus is complete), `eval/beacon_sweep.py` (synthetic timing model), synthetic-fixture unit tests and an end-to-end integration test. **Not done:** DB models/Alembic/jobs (deferred to P6, see architecture §7.6), threshold tuning (no attack data), the M1 test-split baseline and its `baseline-rules-v1` tag, and every attack-detection metric. FP per benign hour on the three dev benign runs is in `eval/results/dev-benign-baseline-v1/`.
+
 **Tasks**
 - `detect/base.py`: `Detector` protocol, `Finding` model, config loading from `config/detectors.yaml`.
 - Implement `detect/scan.py`, `brute.py`, `dns_tunnel.py`, `beacon.py`, `exfil.py` per architecture §7 (bundled-PSL `tldextract`; Bowley/MAD beacon score; modified z-score).

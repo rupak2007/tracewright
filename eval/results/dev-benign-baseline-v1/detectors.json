@@ -1,0 +1,319 @@
+{
+  "scope": "dev split. Benign lab runs with hard-negative traffic only unless attack episodes are listed; this is NOT detector performance on attacks.",
+  "split": "dev",
+  "runs": [
+    "b02",
+    "b04",
+    "b05"
+  ],
+  "benign_hours": 2.2477,
+  "attack_metrics": "not measurable: no labelled attack episode exists in this split",
+  "modes": {
+    "with_allowlists": {
+      "findings": 4,
+      "attack_episodes": {},
+      "episodes_detected": {},
+      "recall": null,
+      "precision": null,
+      "false_positive_findings_all_confidence": 4,
+      "false_positive_findings_medium_high": 4,
+      "false_positive_by_type_medium_high": {
+        "BEACON": 4
+      },
+      "false_positive_by_hard_negative_medium_high": {
+        "CDN_BROWSING": 2,
+        "MONITORING_HEARTBEAT": 1,
+        "PACKAGE_UPDATE": 1
+      },
+      "benign_hours": 2.2477,
+      "false_positives_per_benign_hour_medium_high": 1.7796
+    },
+    "without_allowlists": {
+      "findings": 6,
+      "attack_episodes": {},
+      "episodes_detected": {},
+      "recall": null,
+      "precision": null,
+      "false_positive_findings_all_confidence": 6,
+      "false_positive_findings_medium_high": 6,
+      "false_positive_by_type_medium_high": {
+        "BEACON": 6
+      },
+      "false_positive_by_hard_negative_medium_high": {
+        "CDN_BROWSING": 2,
+        "MONITORING_HEARTBEAT": 1,
+        "NTP": 2,
+        "PACKAGE_UPDATE": 1
+      },
+      "benign_hours": 2.2477,
+      "false_positives_per_benign_hour_medium_high": 2.6694
+    }
+  },
+  "false_positive_findings": {
+    "with_allowlists": [
+      {
+        "run": "b02",
+        "id": "F-1",
+        "type": "BEACON",
+        "confidence": "high",
+        "primary": "172.20.0.102",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "ip",
+          "dst_port": 8080,
+          "events": 60,
+          "beacon_score": 0.9402
+        },
+        "matches_hard_negative": "MONITORING_HEARTBEAT"
+      },
+      {
+        "run": "b02",
+        "id": "F-2",
+        "type": "BEACON",
+        "confidence": "medium",
+        "primary": "172.20.0.103",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "ip",
+          "dst_port": 53,
+          "events": 3296,
+          "beacon_score": 0.8925
+        },
+        "matches_hard_negative": "CDN_BROWSING"
+      },
+      {
+        "run": "b02",
+        "id": "F-3",
+        "type": "BEACON",
+        "confidence": "medium",
+        "primary": "172.20.0.103",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "http_requests",
+          "dst_port": 80,
+          "events": 3300,
+          "beacon_score": 0.8969
+        },
+        "matches_hard_negative": "CDN_BROWSING"
+      },
+      {
+        "run": "b04",
+        "id": "F-1",
+        "type": "BEACON",
+        "confidence": "medium",
+        "primary": "172.20.0.102",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "http_requests",
+          "dst_port": 8082,
+          "events": 350,
+          "beacon_score": 0.8667
+        },
+        "matches_hard_negative": "PACKAGE_UPDATE"
+      }
+    ],
+    "without_allowlists": [
+      {
+        "run": "b02",
+        "id": "F-1",
+        "type": "BEACON",
+        "confidence": "high",
+        "primary": "172.20.0.102",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "ip",
+          "dst_port": 8080,
+          "events": 60,
+          "beacon_score": 0.9402
+        },
+        "matches_hard_negative": "MONITORING_HEARTBEAT"
+      },
+      {
+        "run": "b02",
+        "id": "F-2",
+        "type": "BEACON",
+        "confidence": "high",
+        "primary": "172.20.0.101",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "ip",
+          "dst_port": 123,
+          "events": 22,
+          "beacon_score": 0.9534
+        },
+        "matches_hard_negative": "NTP"
+      },
+      {
+        "run": "b02",
+        "id": "F-3",
+        "type": "BEACON",
+        "confidence": "medium",
+        "primary": "172.20.0.103",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "ip",
+          "dst_port": 53,
+          "events": 3296,
+          "beacon_score": 0.8925
+        },
+        "matches_hard_negative": "CDN_BROWSING"
+      },
+      {
+        "run": "b02",
+        "id": "F-4",
+        "type": "BEACON",
+        "confidence": "medium",
+        "primary": "172.20.0.103",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "http_requests",
+          "dst_port": 80,
+          "events": 3300,
+          "beacon_score": 0.8969
+        },
+        "matches_hard_negative": "CDN_BROWSING"
+      },
+      {
+        "run": "b04",
+        "id": "F-1",
+        "type": "BEACON",
+        "confidence": "medium",
+        "primary": "172.20.0.102",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "http_requests",
+          "dst_port": 8082,
+          "events": 350,
+          "beacon_score": 0.8667
+        },
+        "matches_hard_negative": "PACKAGE_UPDATE"
+      },
+      {
+        "run": "b05",
+        "id": "F-1",
+        "type": "BEACON",
+        "confidence": "high",
+        "primary": "172.20.0.102",
+        "secondary": [
+          "172.20.0.20"
+        ],
+        "score_or_metrics": {
+          "series": "ip",
+          "dst_port": 123,
+          "events": 43,
+          "beacon_score": 0.9224
+        },
+        "matches_hard_negative": "NTP"
+      }
+    ]
+  },
+  "per_run": {
+    "b02": {
+      "with_allowlists": {
+        "findings_by_type": {
+          "BEACON": 3
+        },
+        "suppressed": {
+          "DET-SCAN": {},
+          "DET-BRUTE": {},
+          "DET-DNSTUN": {},
+          "DET-BEACON": {
+            "periodic_port": 1
+          },
+          "DET-EXFIL": {}
+        }
+      },
+      "without_allowlists": {
+        "findings_by_type": {
+          "BEACON": 4
+        },
+        "suppressed": {
+          "DET-SCAN": {},
+          "DET-BRUTE": {},
+          "DET-DNSTUN": {},
+          "DET-BEACON": {},
+          "DET-EXFIL": {}
+        }
+      }
+    },
+    "b04": {
+      "with_allowlists": {
+        "findings_by_type": {
+          "BEACON": 1
+        },
+        "suppressed": {
+          "DET-SCAN": {},
+          "DET-BRUTE": {},
+          "DET-DNSTUN": {},
+          "DET-BEACON": {},
+          "DET-EXFIL": {}
+        }
+      },
+      "without_allowlists": {
+        "findings_by_type": {
+          "BEACON": 1
+        },
+        "suppressed": {
+          "DET-SCAN": {},
+          "DET-BRUTE": {},
+          "DET-DNSTUN": {},
+          "DET-BEACON": {},
+          "DET-EXFIL": {}
+        }
+      }
+    },
+    "b05": {
+      "with_allowlists": {
+        "findings_by_type": {},
+        "suppressed": {
+          "DET-SCAN": {},
+          "DET-BRUTE": {},
+          "DET-DNSTUN": {},
+          "DET-BEACON": {
+            "periodic_port": 1
+          },
+          "DET-EXFIL": {}
+        }
+      },
+      "without_allowlists": {
+        "findings_by_type": {
+          "BEACON": 1
+        },
+        "suppressed": {
+          "DET-SCAN": {},
+          "DET-BRUTE": {},
+          "DET-DNSTUN": {},
+          "DET-BEACON": {},
+          "DET-EXFIL": {}
+        }
+      }
+    }
+  },
+  "suppressed_with_allowlists": {
+    "DET-SCAN": {},
+    "DET-BRUTE": {},
+    "DET-DNSTUN": {},
+    "DET-BEACON": {
+      "periodic_port": 2
+    },
+    "DET-EXFIL": {}
+  }
+}

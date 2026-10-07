@@ -1,0 +1,908 @@
+{
+  "scope": "SYNTHETIC timing model of the beacon score; not detection performance on real traffic (no capture is read).",
+  "min_events": 10,
+  "min_score": 0.8,
+  "seeds_per_cell": 20,
+  "cells": [
+    {
+      "interval_s": 10,
+      "jitter": 0.0,
+      "capture_duration_s": 600,
+      "mean_events": 61.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.0,
+      "capture_duration_s": 1800,
+      "mean_events": 181.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.0,
+      "capture_duration_s": 3600,
+      "mean_events": 361.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.0,
+      "capture_duration_s": 7200,
+      "mean_events": 721.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.0,
+      "capture_duration_s": 14400,
+      "mean_events": 1441.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.1,
+      "capture_duration_s": 600,
+      "mean_events": 60.45,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9581
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.1,
+      "capture_duration_s": 1800,
+      "mean_events": 180.2,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9692
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.1,
+      "capture_duration_s": 3600,
+      "mean_events": 360.25,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9762
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.1,
+      "capture_duration_s": 7200,
+      "mean_events": 720.55,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9775
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.1,
+      "capture_duration_s": 14400,
+      "mean_events": 1440.25,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9803
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.25,
+      "capture_duration_s": 600,
+      "mean_events": 60.05,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9467
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.25,
+      "capture_duration_s": 1800,
+      "mean_events": 180.25,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9471
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.25,
+      "capture_duration_s": 3600,
+      "mean_events": 361.7,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9536
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.25,
+      "capture_duration_s": 7200,
+      "mean_events": 721.1,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9581
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.25,
+      "capture_duration_s": 14400,
+      "mean_events": 1440.9,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9616
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.5,
+      "capture_duration_s": 600,
+      "mean_events": 60.65,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.8959
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.5,
+      "capture_duration_s": 1800,
+      "mean_events": 181.3,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.914
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.5,
+      "capture_duration_s": 3600,
+      "mean_events": 361.3,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9239
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.5,
+      "capture_duration_s": 7200,
+      "mean_events": 722.5,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9291
+    },
+    {
+      "interval_s": 10,
+      "jitter": 0.5,
+      "capture_duration_s": 14400,
+      "mean_events": 1439.7,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9282
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.0,
+      "capture_duration_s": 600,
+      "mean_events": 21.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.0,
+      "capture_duration_s": 1800,
+      "mean_events": 61.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.0,
+      "capture_duration_s": 3600,
+      "mean_events": 121.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.0,
+      "capture_duration_s": 7200,
+      "mean_events": 241.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.0,
+      "capture_duration_s": 14400,
+      "mean_events": 481.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.1,
+      "capture_duration_s": 600,
+      "mean_events": 20.45,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9266
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.1,
+      "capture_duration_s": 1800,
+      "mean_events": 60.55,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9441
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.1,
+      "capture_duration_s": 3600,
+      "mean_events": 120.75,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9639
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.1,
+      "capture_duration_s": 7200,
+      "mean_events": 240.35,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9626
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.1,
+      "capture_duration_s": 14400,
+      "mean_events": 480.7,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9751
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.25,
+      "capture_duration_s": 600,
+      "mean_events": 20.25,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9001
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.25,
+      "capture_duration_s": 1800,
+      "mean_events": 60.1,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9344
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.25,
+      "capture_duration_s": 3600,
+      "mean_events": 120.5,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.943
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.25,
+      "capture_duration_s": 7200,
+      "mean_events": 240.75,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9525
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.25,
+      "capture_duration_s": 14400,
+      "mean_events": 480.55,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9533
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.5,
+      "capture_duration_s": 600,
+      "mean_events": 21.2,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.8822
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.5,
+      "capture_duration_s": 1800,
+      "mean_events": 60.45,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9065
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.5,
+      "capture_duration_s": 3600,
+      "mean_events": 120.5,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9101
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.5,
+      "capture_duration_s": 7200,
+      "mean_events": 241.05,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9172
+    },
+    {
+      "interval_s": 30,
+      "jitter": 0.5,
+      "capture_duration_s": 14400,
+      "mean_events": 482.5,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9233
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.0,
+      "capture_duration_s": 600,
+      "mean_events": 11.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.0,
+      "capture_duration_s": 1800,
+      "mean_events": 31.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.0,
+      "capture_duration_s": 3600,
+      "mean_events": 61.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.0,
+      "capture_duration_s": 7200,
+      "mean_events": 121.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.0,
+      "capture_duration_s": 14400,
+      "mean_events": 241.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.1,
+      "capture_duration_s": 600,
+      "mean_events": 10.55,
+      "seeds": 20,
+      "fire_rate": 0.9,
+      "mean_score_when_enough_events": 0.8897
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.1,
+      "capture_duration_s": 1800,
+      "mean_events": 30.5,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9405
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.1,
+      "capture_duration_s": 3600,
+      "mean_events": 60.5,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9578
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.1,
+      "capture_duration_s": 7200,
+      "mean_events": 120.55,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9641
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.1,
+      "capture_duration_s": 14400,
+      "mean_events": 240.55,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9701
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.25,
+      "capture_duration_s": 600,
+      "mean_events": 10.6,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9185
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.25,
+      "capture_duration_s": 1800,
+      "mean_events": 30.7,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9139
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.25,
+      "capture_duration_s": 3600,
+      "mean_events": 60.75,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9407
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.25,
+      "capture_duration_s": 7200,
+      "mean_events": 119.8,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9377
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.25,
+      "capture_duration_s": 14400,
+      "mean_events": 240.85,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9545
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.5,
+      "capture_duration_s": 600,
+      "mean_events": 11.0,
+      "seeds": 20,
+      "fire_rate": 0.9,
+      "mean_score_when_enough_events": 0.8924
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.5,
+      "capture_duration_s": 1800,
+      "mean_events": 30.95,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.8865
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.5,
+      "capture_duration_s": 3600,
+      "mean_events": 61.6,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9085
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.5,
+      "capture_duration_s": 7200,
+      "mean_events": 120.5,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9204
+    },
+    {
+      "interval_s": 60,
+      "jitter": 0.5,
+      "capture_duration_s": 14400,
+      "mean_events": 240.2,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9224
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.0,
+      "capture_duration_s": 600,
+      "mean_events": 3.0,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.0,
+      "capture_duration_s": 1800,
+      "mean_events": 7.0,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.0,
+      "capture_duration_s": 3600,
+      "mean_events": 13.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.0,
+      "capture_duration_s": 7200,
+      "mean_events": 25.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.0,
+      "capture_duration_s": 14400,
+      "mean_events": 49.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.1,
+      "capture_duration_s": 600,
+      "mean_events": 2.5,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.1,
+      "capture_duration_s": 1800,
+      "mean_events": 6.7,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.1,
+      "capture_duration_s": 3600,
+      "mean_events": 12.65,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.918
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.1,
+      "capture_duration_s": 7200,
+      "mean_events": 24.45,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9088
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.1,
+      "capture_duration_s": 14400,
+      "mean_events": 48.4,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9354
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.25,
+      "capture_duration_s": 600,
+      "mean_events": 2.45,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.25,
+      "capture_duration_s": 1800,
+      "mean_events": 6.5,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.25,
+      "capture_duration_s": 3600,
+      "mean_events": 12.55,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9059
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.25,
+      "capture_duration_s": 7200,
+      "mean_events": 24.25,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9124
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.25,
+      "capture_duration_s": 14400,
+      "mean_events": 48.35,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.919
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.5,
+      "capture_duration_s": 600,
+      "mean_events": 2.45,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.5,
+      "capture_duration_s": 1800,
+      "mean_events": 6.55,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.5,
+      "capture_duration_s": 3600,
+      "mean_events": 12.35,
+      "seeds": 20,
+      "fire_rate": 0.95,
+      "mean_score_when_enough_events": 0.884
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.5,
+      "capture_duration_s": 7200,
+      "mean_events": 24.2,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.8874
+    },
+    {
+      "interval_s": 300,
+      "jitter": 0.5,
+      "capture_duration_s": 14400,
+      "mean_events": 48.1,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.8982
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.0,
+      "capture_duration_s": 600,
+      "mean_events": 1.0,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.0,
+      "capture_duration_s": 1800,
+      "mean_events": 3.0,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.0,
+      "capture_duration_s": 3600,
+      "mean_events": 5.0,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.0,
+      "capture_duration_s": 7200,
+      "mean_events": 9.0,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.0,
+      "capture_duration_s": 14400,
+      "mean_events": 17.0,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 1.0
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.1,
+      "capture_duration_s": 600,
+      "mean_events": 1.0,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.1,
+      "capture_duration_s": 1800,
+      "mean_events": 2.45,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.1,
+      "capture_duration_s": 3600,
+      "mean_events": 4.6,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.1,
+      "capture_duration_s": 7200,
+      "mean_events": 8.4,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.1,
+      "capture_duration_s": 14400,
+      "mean_events": 16.45,
+      "seeds": 20,
+      "fire_rate": 0.95,
+      "mean_score_when_enough_events": 0.9158
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.25,
+      "capture_duration_s": 600,
+      "mean_events": 1.0,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.25,
+      "capture_duration_s": 1800,
+      "mean_events": 2.5,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.25,
+      "capture_duration_s": 3600,
+      "mean_events": 4.6,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.25,
+      "capture_duration_s": 7200,
+      "mean_events": 8.45,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.25,
+      "capture_duration_s": 14400,
+      "mean_events": 16.6,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.9181
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.5,
+      "capture_duration_s": 600,
+      "mean_events": 1.05,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.5,
+      "capture_duration_s": 1800,
+      "mean_events": 2.45,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.5,
+      "capture_duration_s": 3600,
+      "mean_events": 4.55,
+      "seeds": 20,
+      "fire_rate": 0.0,
+      "mean_score_when_enough_events": null
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.5,
+      "capture_duration_s": 7200,
+      "mean_events": 8.65,
+      "seeds": 20,
+      "fire_rate": 0.05,
+      "mean_score_when_enough_events": 0.8308
+    },
+    {
+      "interval_s": 900,
+      "jitter": 0.5,
+      "capture_duration_s": 14400,
+      "mean_events": 16.35,
+      "seeds": 20,
+      "fire_rate": 1.0,
+      "mean_score_when_enough_events": 0.8745
+    }
+  ]
+}

@@ -93,7 +93,8 @@ Re-running an evaluation from its manifest must give identical metrics (NFR-02).
 |---|---|
 | Protocol | Frozen (this document) |
 | Label schema, split tooling, `eval/datasets.md` | Implemented (P2 partial); see `eval/REVISIONS.md` #1 for the added label fields |
-| Lab corpus, labels, populated `eval/splits.yaml` | Not yet built: attack scenarios, held-out families and the full corpus are deferred (`lab/README.md`) |
-| Detector results | Not yet measured |
+| Lab corpus, labels, populated `eval/splits.yaml` | Benign part recorded and frozen (6 runs, 4.53 h); attack scenarios, held-out families and `AUTOMATION_SSH` are not built (`eval/datasets.md`, `lab/README.md`) |
+| Detectors, matching rule, harness | Implemented (P3, `eval/run_detectors.py`, `eval/matching.py`); thresholds are the untuned PRD defaults |
+| Detector results | **Attack metrics: not measurable** (no labelled attack episode exists). Benign false positives on the 3 `dev` runs only: `eval/results/dev-benign-baseline-v1/`. Nothing evaluated on `test` |
 | G1 | Not run |
 | G2 | Not run |

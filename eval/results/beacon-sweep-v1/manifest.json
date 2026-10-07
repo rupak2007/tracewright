@@ -1,0 +1,25 @@
+{
+  "git_commit": "7e219cfa3218c7d4a1f8baae1eaa5dcebcc99abb",
+  "config_hash": "d755d29e0dbe24198fd30be64389d83d231d0b4769de34f980f19e19bf7a79ab",
+  "timestamp_utc": "2026-10-07T20:12:48Z",
+  "intervals_s": [
+    10,
+    30,
+    60,
+    300,
+    900
+  ],
+  "jitters": [
+    0.0,
+    0.1,
+    0.25,
+    0.5
+  ],
+  "durations_s": [
+    600,
+    1800,
+    3600,
+    7200,
+    14400
+  ]
+}

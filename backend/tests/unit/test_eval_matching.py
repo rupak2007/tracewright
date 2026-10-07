@@ -2,6 +2,11 @@
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
+pytest.importorskip("eval")
+pytest.importorskip("lab")
+
 from eval.matching import (
     FindingView,
     RunEvaluation,

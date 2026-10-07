@@ -233,6 +233,24 @@ Finding
 - Fires when outbound ≥ floor (50 MB), z ≥ 3.5, out/in ≥ 5. If fewer than 20 pairs, z is not computed; only the floor applies, with low confidence and `WEAK_BASELINE_EXFIL`.
 - Hosts listed as `backup_servers` destinations are suppressed (counted).
 
+### 7.6 Implementation notes (P3, detectors v1.0.0)
+
+Code: `backend/app/detect/` (`base` Finding/Detector/helpers, `config` strict loader + config hash, `windows`, one module per detector, `runner`), thresholds in `config/detectors.yaml` (every value is the PRD §10 initial default; **none has been tuned or measured**). Stage S4 (`worker/pipeline.py`) runs the detectors after profiling and writes `findings.json`; suppressed-finding counts are also written to `profile.json` (`suppressed_findings`, FR-13). `evidence_refs` holds the first 200 unique Zeek uids (time order) and `evidence_count` the total; DNS findings cite the dns row's connection uid. `severity_base` is `base[type]` from §9; confidence is **medium** wherever the documents define only the `high` condition (SCAN, DNSTUN, BEACON, SSH/RDP/Telnet BRUTE) and **low** only for EXFIL without a baseline.
+
+Where the documents were ambiguous, the choice made (revisit when real attack captures exist):
+
+| Topic | Choice |
+|---|---|
+| SCAN | One finding per (source, scan type, target) using the earliest window with the most distinct values; `slow_vertical` is reported only if `vertical` did not fire for the same source/host pair; horizontal findings list at most 50 targets (the metric carries the true count). |
+| BRUTE spraying | "Same source, same service, ≥ 5 targets" is read as ≥ 5 distinct destinations among that source's firing findings for the service; each target must itself meet the per-target threshold (no lower bar was specified). HTTP failures group by host + URI; URIs and hosts are grouping keys only and are never stored. SSH `auth_success == true` connections are excluded from the pattern set. |
+| DNSTUN | Subdomain length/entropy are means over the **unique** subdomain strings (dots excluded for entropy); TXT/NULL share and NXDOMAIN rate are over all queries. High confidence needs rule A with both the entropy and the length criterion. Allowlist entries must be **registered** domains (an entry deeper than the registered domain never matches). Unknown suffixes (e.g. `.test`) fall back to the last two labels. |
+| BEACON | Only internal sources (§9 primary-entity rule). Series: ip, TLS-name/HTTP-Host, and http.log request times; duplicates of the same connections are reduced to one finding. Periodic-port and allowlisted-domain series are scored, then suppressed and counted. Bytes = orig + resp bytes per connection (body lengths per request for http). |
+| EXFIL | Only connections started by the internal host count as outbound. "50 MB" = 50,000,000 bytes. With < 20 pairs only the byte floor applies (not the ratio), at low confidence. Modified-z falls back to the mean absolute deviation when MAD = 0. A TLS/HTTP-name grouping is reported only when the IP grouping does not already cover its connections. |
+
+Known limitations (documented, not fixed): HTTPS/TLS beacons that keep one TCP connection open are invisible at connection level; DET-EXFIL ignores external-initiated sessions; with `config/network.lab.yaml` the lab clients' ext-net addresses (172.21.0.101-103) classify as *external*, so the lab's `CLOUD_SYNC_UPLOAD` hard negative cannot exercise DET-EXFIL (observed on dev run b05); the connection-level beacon score fires on regular benign traffic (see `eval/datasets.md`, dev observations).
+
+Not built in P3 (listed in plan P3, deferred): DB persistence of findings (`investigations`, `findings`, `evidence_items`, `jobs`, Alembic): it belongs with the DB-backed job queue and upload endpoint (P6); until then findings are JSON files. The M1 baseline (`baseline-rules-v1`: test-split run, dev-only tuning log) is **not** produced because the attack corpus does not exist.
+
 ## 8. ML pipeline — residual anomaly triage
 
 > **Why it exists → input → processing → output → evaluation → failure mode**

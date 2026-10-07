@@ -1,0 +1,34 @@
+{
+  "git": {
+    "commit": "07f790182d929480d1c2d3b96f07a4e75dcedacf",
+    "dirty": false
+  },
+  "config_hash": "d755d29e0dbe24198fd30be64389d83d231d0b4769de34f980f19e19bf7a79ab",
+  "detector_config": "config\\detectors.yaml",
+  "split": "dev",
+  "split_seed": 20261004,
+  "runs": {
+    "b02": {
+      "capture_sha256": "88b8ddb0dd769a3a0733b46defbf27b84a059d9ef6b3e55fb75900357ea5a4d9",
+      "zeek_version": "9.0.0",
+      "capture_duration_s": 2688.650604,
+      "network_config": "network.lab.yaml",
+      "episodes": 3
+    },
+    "b04": {
+      "capture_sha256": "10217f085c3b1eabdff355d534a10bc4d0afb959c1400df8d6f857f4f6379185",
+      "zeek_version": "9.0.0",
+      "capture_duration_s": 2714.460004,
+      "network_config": "network.lab.yaml",
+      "episodes": 3
+    },
+    "b05": {
+      "capture_sha256": "645cd502a353ed3c984e45dfcc785e1848ff46ab2a4497e081652a9633e31dd2",
+      "zeek_version": "9.0.0",
+      "capture_duration_s": 2688.555639,
+      "network_config": "network.lab.yaml",
+      "episodes": 3
+    }
+  },
+  "timestamp_utc": "2026-10-07T20:10:55Z"
+}

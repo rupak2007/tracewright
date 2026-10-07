@@ -140,3 +140,29 @@ Real captures, supplied through `lab/README.md` ("Supplying an externally produc
 * for `AUTOMATION_SSH`: runs in both splits (or a new benign scenario added to the lab runner first);
 * each as `capture.pcap|pcapng` + `labels.jsonl` + `submission.json` with full provenance, produced in an
   isolated environment with no real user data.
+
+## Detector observations on the `dev` benign runs (2026-10-08, P3; nothing tuned)
+
+Source: `eval/results/dev-benign-baseline-v1/` (`python -m eval.run_detectors --split dev`, detectors
+v1.0.0 with the untuned PRD defaults, config hash in its manifest). Runs b02, b04, b05 (2.2477 benign hours).
+The `test` split (b01, b03, b06) was not evaluated and the harness refuses to until the corpus is complete.
+
+| | With network-context allowlists | Without |
+|---|---|---|
+| Findings (all medium/high) | 4 (all `BEACON`) | 6 (all `BEACON`) |
+| Per benign hour | 1.7796 | 2.6694 |
+| Attributed to hard negative | CDN_BROWSING 2, MONITORING_HEARTBEAT 1, PACKAGE_UPDATE 1 | same + NTP 2 |
+| SCAN, BRUTE, DNSTUN, EXFIL findings | 0 | 0 |
+| Suppressed by the context (counted) | 2 beacon findings on periodic port 123 | n/a |
+
+Reading, without any claim about attacks: the connection-level beacon score fires on *regular benign traffic*
+(a 45 s heartbeat; a sub-second DNS and HTTP rhythm during CDN browsing; closely spaced package requests), which
+the PRD already lists as known benign causes. Whether that justifies a tuning change (for example a minimum
+interval) can only be judged against attack recall, which cannot be measured until attack captures exist; no
+threshold was changed. Limitation: with `config/network.lab.yaml` the lab clients' ext-net addresses
+(172.21.0.101-103) classify as external, so the lab's `CLOUD_SYNC_UPLOAD` runs (b05) cannot exercise DET-EXFIL
+(an exploratory re-run treating them as internal produced one low-confidence EXFIL finding; that run is not recorded
+in any result file). Attack recall and precision: **not yet measured**.
+
+`eval/results/beacon-sweep-v1/` is a *synthetic timing model* of the beacon score (interval x jitter x capture
+duration); it shows the D >= 10 x I detectability limit and is not detection performance.
