@@ -1,0 +1,27 @@
+# Residual anomaly triage (architecture §8, PRD §11). The scorer itself is chosen by the ANOMALY_SCORER
+# setting (default `off`) and decided by gate G1 (eval/decisions/G1.md). Initial values, not measured.
+version: 1
+
+window_s: 300                       # entity-window size; G1 tuning on LAB-HOLDOUT dev may change it
+min_population: 100                 # rule-unexplained windows needed, else the stage is skipped (FR-23)
+max_promoted: 10                    # FR-22: at most N windows become UNEXPLAINED_ANOMALY findings
+top_features: 3                     # features named in every explanation
+max_evidence_refs: 200
+
+features:
+  standard_port_max: 1023           # destination ports above this count as non-standard...
+  extra_standard_ports: [3389, 8080, 8443]   # ...unless listed here
+  failed_states: [S0, REJ, RSTO, RSTR, RSTOS0, SH, OTH]
+  established_states: [SF, S1, S2, S3, RSTO, RSTR]
+
+iforest:
+  n_estimators: 200
+  max_samples: auto
+  seed: 20261004
+
+# Promotion cut-offs per scorer: a window is promoted only above its scorer's cut-off, chosen so that at most
+# 1% of BENIGN dev windows exceed it (eval.run_anomaly calibrate). `null` = not calibrated, so nothing is
+# promoted. Never tuned on test.
+promotion_threshold:
+  robust_z: null
+  iforest: null

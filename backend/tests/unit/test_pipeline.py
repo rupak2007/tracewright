@@ -65,6 +65,7 @@ def test_happy_path_produces_all_artifacts(tmp_path: Path, config_dir: Path) -> 
         "normalise",
         "profile",
         "detect",
+        "anomaly",
         "correlate",
         "explain",
     }
@@ -199,3 +200,21 @@ def test_original_capture_is_not_modified(tmp_path: Path, config_dir: Path) -> N
     before = pcap.read_bytes()
     analyze_capture(pcap, tmp_path / "out", _settings(tmp_path, config_dir, ZEEK_OK))
     assert pcap.read_bytes() == before
+
+
+def test_anomaly_stage_is_off_by_default_and_skips_small_populations_with_a_warning(
+    tmp_path: Path, config_dir: Path
+) -> None:
+    off = tmp_path / "off"
+    analyze_capture(_pcap(tmp_path), off, _settings(tmp_path, config_dir, ZEEK_OK))
+    summary = json.loads((off / "anomalies.json").read_text())
+    assert summary["status"] == "off" and summary["scored_windows"] == []
+    assert "ANOMALY_POPULATION_SMALL" not in [w.code for w in read_profile(off).warnings]
+
+    on = tmp_path / "on"
+    settings = _settings(tmp_path, config_dir, ZEEK_OK, anomaly_scorer="robust_z")
+    analyze_capture(_pcap(tmp_path), on, settings)
+    summary = json.loads((on / "anomalies.json").read_text())
+    assert summary["status"] == "skipped" and summary["scorer"] == "robust_z"
+    assert summary["promoted_findings"] == [] and "wording" in summary
+    assert "ANOMALY_POPULATION_SMALL" in [w.code for w in read_profile(on).warnings]

@@ -80,3 +80,23 @@ def run_detectors(
         findings=findings,
         suppressed=suppressed,
     )
+
+
+def extend_report(
+    report: DetectionReport, extra: Sequence[Finding], versions: dict[str, str]
+) -> DetectionReport:
+    """Add findings from another stage (anomaly promotion) and renumber everything F-1..F-n in the
+    same deterministic order the detectors use."""
+    if not extra:
+        return report
+    ordered = sorted([*report.findings, *extra], key=_sort_key)
+    findings = [
+        f.model_copy(update={"id": f"F-{n}", "investigation_id": report.investigation_id})
+        for n, f in enumerate(ordered, start=1)
+    ]
+    return report.model_copy(
+        update={
+            "findings": findings,
+            "detector_versions": {**report.detector_versions, **versions},
+        }
+    )

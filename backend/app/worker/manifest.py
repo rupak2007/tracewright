@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict
 CONFIG_FILES = (
     "detectors.yaml",
     "correlation.yaml",
+    "anomaly.yaml",
     "attack.yaml",
     "attack_mapping.yaml",
     "network.yaml",

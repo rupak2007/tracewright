@@ -31,7 +31,7 @@ from typing import Any
 from app.detect.base import DetectorInput
 from app.detect.config import DetectorsConfig, load_detectors_config
 from app.detect.runner import DetectionReport, run_detectors
-from app.ingest.normalise import read_tables
+from app.ingest.normalise import CaptureTables, read_tables
 from app.profile.context import NetworkContext, load_network_context
 from eval.matching import FindingView, RunEvaluation, evaluate_run, summarise
 from eval.splits import (
@@ -99,13 +99,10 @@ def git_state() -> dict[str, Any]:
     return {"commit": run("rev-parse", "HEAD"), "dirty": bool(run("status", "--porcelain"))}
 
 
-def analyse_run(
-    run_id: str,
-    loaded: LoadedRun,
-    analysis_dir: Path,
-    config: DetectorsConfig,
-    config_dir: Path,
-) -> tuple[dict[str, DetectionReport], dict[str, Any]]:
+def load_analysis(
+    run_id: str, loaded: LoadedRun, analysis_dir: Path
+) -> tuple[CaptureTables, dict[str, Any], dict[str, Any]]:
+    """Tables, status and profile of a run's P1 analysis, checked to be of the run's own capture."""
     root = analysis_dir / run_id
     status_path, profile_path = root / "status.json", root / "profile.json"
     if not (root / "tables").is_dir() or not status_path.exists() or not profile_path.exists():
@@ -119,9 +116,19 @@ def analyse_run(
             f"the analysis in {root} is not a completed analysis of {run_id}'s capture"
         )
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    return read_tables(root / "tables"), status, profile
+
+
+def analyse_run(
+    run_id: str,
+    loaded: LoadedRun,
+    analysis_dir: Path,
+    config: DetectorsConfig,
+    config_dir: Path,
+) -> tuple[dict[str, DetectionReport], dict[str, Any]]:
+    tables, status, profile = load_analysis(run_id, loaded, analysis_dir)
     duration = profile["capture"]["duration_s"]
     context = load_network_context(config_dir / loaded.meta.network_config)
-    tables = read_tables(root / "tables")
     reports = {
         "with_allowlists": run_detectors(
             DetectorInput(tables, context, config, duration), investigation_id=run_id

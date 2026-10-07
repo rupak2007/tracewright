@@ -9,6 +9,7 @@ a wrong mapping.
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.anomaly.config import AnomalyConfig, load_anomaly_config
 from app.attack.cards import Card, CardIndex, load_cards, load_index
 from app.attack.mapping import MappingConfig, load_mapping, validate_mapping
 from app.attack.stix import AttackPins, load_pins
@@ -27,6 +28,7 @@ class AnalysisConfig:
     profile: ProfileConfig
     detectors: DetectorsConfig
     correlation: CorrelationConfig
+    anomaly: AnomalyConfig
     mapping: MappingConfig
     pins: AttackPins
     card_index: CardIndex
@@ -47,6 +49,7 @@ def load_analysis_config(settings: PipelineSettings) -> AnalysisConfig:
         profile=load_profile_config(cfg / "profile.yaml"),
         detectors=load_detectors_config(cfg / "detectors.yaml"),
         correlation=load_correlation_config(cfg / "correlation.yaml"),
+        anomaly=load_anomaly_config(cfg / "anomaly.yaml"),
         mapping=mapping,
         pins=pins,
         card_index=index,

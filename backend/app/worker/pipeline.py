@@ -5,7 +5,8 @@ Runs in the worker only. Writes under `out_dir`:
     tables/*.parquet   normalised tables (all eight, empty ones included)
     logs/              Zeek stderr
     profile.json       capture profile + data-quality warnings (+ suppressed finding counts)
-    findings.json      detector findings, thresholds applied, suppression counts (stage S4)
+    findings.json      detector findings (+ promoted anomalies), thresholds, suppressed counts
+    anomalies.json     anomaly-triage outcome: status, scorer, top scored windows, promoted findings
     incidents.json     ranked incidents, links, ATT&CK refs, evidence IDs, summaries (S6-S8)
     report.md          Markdown report with evidence IDs
     manifest.json      versions, config hashes and counts that produced the result
@@ -27,12 +28,13 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.anomaly.triage import anomaly_summary, anomaly_warnings, triage
 from app.core.config import PipelineSettings
 from app.core.errors import IngestError, StartupCheckError, TracewrightError
 from app.core.logging import log_context
 from app.correlate.runner import correlate
 from app.detect.base import DetectorInput
-from app.detect.runner import run_detectors
+from app.detect.runner import extend_report, run_detectors
 from app.ingest.capinfos import run_capinfos
 from app.ingest.normalise import normalise_logs
 from app.ingest.validate import validate_file
@@ -47,7 +49,16 @@ from app.worker.startup import check_zeek
 
 logger = logging.getLogger(__name__)
 
-STAGES = ("validate", "zeek_parse", "normalise", "profile", "detect", "correlate", "explain")
+STAGES = (
+    "validate",
+    "zeek_parse",
+    "normalise",
+    "profile",
+    "detect",
+    "anomaly",
+    "correlate",
+    "explain",
+)
 
 
 class AnalysisStatus(BaseModel):
@@ -142,9 +153,30 @@ def analyze_capture(pcap: Path, out_dir: Path, settings: PipelineSettings) -> An
                 DetectorInput(tables, acfg.network, acfg.detectors, profile.capture.duration_s),
                 investigation_id=f"inv-{(run.status.sha256 or 'local')[:12]}",
             )
+        with run.stage("anomaly"):
+            triaged = triage(
+                tables,
+                acfg.network,
+                report.findings,
+                acfg.anomaly,
+                settings.anomaly_scorer,
+                severity_base=acfg.detectors.common.severity_base["UNEXPLAINED_ANOMALY"],
+            )
+            report = extend_report(
+                report, triaged.promoted, {"ANOMALY-TRIAGE": "1.0.0"} if triaged.promoted else {}
+            )
             _write_json_atomic(out_dir / "findings.json", report.model_dump_json(indent=2))
+            _write_json_atomic(
+                out_dir / "anomalies.json",
+                json.dumps(anomaly_summary(triaged, report, acfg.anomaly), indent=2),
+            )
             # FR-13: suppressed findings are reported in the capture profile, never dropped silently
-            profile = profile.model_copy(update={"suppressed_findings": report.suppressed})
+            profile = profile.model_copy(
+                update={
+                    "suppressed_findings": report.suppressed,
+                    "warnings": [*profile.warnings, *anomaly_warnings(triaged)],
+                }
+            )
             _write_json_atomic(out_dir / "profile.json", profile.model_dump_json(indent=2))
         with run.stage("correlate"):
             correlation = correlate(report.findings, acfg.correlation)
