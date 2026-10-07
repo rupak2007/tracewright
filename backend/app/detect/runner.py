@@ -5,7 +5,7 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel
 
-from app.detect import beacon, brute, dns_tunnel, scan
+from app.detect import beacon, brute, dns_tunnel, exfil, scan
 from app.detect.base import Detector, DetectorInput, Finding
 
 # Appended to as each detector lands; the order here is the order they run in, not the output order.
@@ -14,6 +14,7 @@ DETECTORS: tuple[Detector, ...] = (
     brute.DETECTOR,
     dns_tunnel.DETECTOR,
     beacon.DETECTOR,
+    exfil.DETECTOR,
 )
 
 _TYPE_ORDER = {"SCAN": 0, "BRUTE": 1, "DNSTUN": 2, "BEACON": 3, "EXFIL": 4}
