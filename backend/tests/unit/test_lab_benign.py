@@ -137,7 +137,9 @@ def test_each_labelled_scenario_runs_against_real_servers_and_writes_one_valid_l
     run_scenario(name, make_ctx(ports, **params), Labeler(labels, "r001", id_prefix="c101-"))
     [episode] = read_labels(labels)
     assert episode.kind == "hard_negative" and episode.cls == SCENARIOS[name].cls
-    assert episode.actor == "172.20.0.101" and episode.episode_id == "r001-c101-e1"
+    # an external-sink scenario is labelled with the address its packets really carry
+    expected_actor = LOCAL if SCENARIOS[name].external else "172.20.0.101"
+    assert episode.actor == expected_actor and episode.episode_id == "r001-c101-e1"
     assert episode.end >= episode.start and episode.tool == scenarios.ACTOR_TOOL
 
 
@@ -206,3 +208,8 @@ def test_which_scenarios_are_repeatable() -> None:
     assert {n for n, s in SCENARIOS.items() if s.repeatable} == {
         "rsync_backup", "cloud_sync_upload", "package_update", "cdn_browsing",
     }  # fmt: skip
+
+
+def test_source_address_is_the_interface_used_for_the_destination() -> None:
+    assert scenarios._source_address(LOCAL, "fallback") == LOCAL
+    assert scenarios._source_address("not an address", "fallback") == "fallback"

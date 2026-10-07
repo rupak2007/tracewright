@@ -232,6 +232,16 @@ def _run_body(scenario: Scenario, ctx: Context) -> None:
     _periodic(ctx, float(every), lambda: scenario.run(ctx))
 
 
+def _source_address(destination: str, fallback: str) -> str:
+    """The local address the kernel would use to reach `destination` (no packet is sent)."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect((destination, 9))
+            return str(probe.getsockname()[0])
+    except OSError:
+        return fallback
+
+
 def run_scenario(name: str, ctx: Context, labeler: Labeler | None) -> None:
     """Run one scenario; labelled ones are wrapped in a hard_negative episode."""
     scenario = SCENARIOS[name]
@@ -239,6 +249,9 @@ def run_scenario(name: str, ctx: Context, labeler: Labeler | None) -> None:
         _run_body(scenario, ctx)
         return
     target = ctx.external_host if scenario.external else ctx.internal_host
+    # A client reaches the external stand-in over its ext-net interface, so the packets carry
+    # that address, not the lab-net one the run was planned with: label what the capture holds.
+    actor = _source_address(target, ctx.actor) if scenario.external else ctx.actor
     params = {"duration_s": ctx.duration_s, **ctx.params}
-    with labeler.episode("hard_negative", scenario.cls, ctx.actor, [target], ACTOR_TOOL, params):
+    with labeler.episode("hard_negative", scenario.cls, actor, [target], ACTOR_TOOL, params):
         _run_body(scenario, ctx)
