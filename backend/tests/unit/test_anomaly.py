@@ -30,13 +30,22 @@ from tests.detect_helpers import T0, conn_rows, context, finding, frame, tables
 
 REPO = Path(__file__).resolve().parents[3]
 CFG: AnomalyConfig = load_anomaly_config(REPO / "config" / "anomaly.yaml")
-SMALL = CFG.model_copy(update={"min_population": 5})
+SMALL = CFG.model_copy(
+    update={
+        "min_population": 5,
+        "promotion_threshold": CFG.promotion_threshold.model_copy(
+            update={"robust_z": None, "iforest": None}
+        ),
+    }
+)  # small populations allowed, nothing calibrated
 HOST = "10.0.0.5"
 
 
-def test_config_loads_with_uncalibrated_thresholds_and_rejects_garbage(tmp_path: Path) -> None:
+def test_config_loads_with_dev_calibrated_thresholds_and_rejects_garbage(tmp_path: Path) -> None:
     assert CFG.window_s == 300 and CFG.min_population == 100 and CFG.max_promoted == 10
-    assert CFG.threshold_for("robust_z") is None and CFG.threshold_for("iforest") is None
+    # calibrated on BENIGN dev only (eval/results/anomaly-calibration-dev-v1, REVISIONS #7)
+    assert CFG.threshold_for("robust_z") and CFG.threshold_for("iforest")
+    assert CFG.threshold_for("off") is None
     assert CFG.iforest.n_estimators == 200
     (tmp_path / "a.yaml").write_text("version: 1\nwindow_s: 0\n", encoding="utf-8")
     with pytest.raises(ConfigError):

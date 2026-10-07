@@ -1,0 +1,13 @@
+{
+  "git": {
+    "commit": "c8f987d187a4b41d5ba8543690624d783745dad1",
+    "dirty": true
+  },
+  "anomaly_config": "anomaly.yaml",
+  "timestamp_utc": "2026-10-07T21:29:09Z",
+  "runs": [
+    "b02",
+    "b04",
+    "b05"
+  ]
+}

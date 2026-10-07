@@ -193,6 +193,8 @@
 
 **Objective:** test whether multivariate anomaly scoring adds value over robust statistics; ship the winner or nothing.
 
+**Status (2026-10-08):** features, scorers, triage, stage S5, promotion, calibration on BENIGN dev and the G1 evaluation/decision tooling are implemented and tested on synthetic windows. **Gate G1 is NOT run** (no LAB-HOLDOUT captures; `eval/decisions/G1.md`): `ANOMALY_SCORER` stays `off`. No held-out metric exists.
+
 **Tasks**
 - `anomaly/features.py` (16 features, architecture §8), rule-explained mask.
 - `anomaly/scorers.py`: `robust_z`, `iforest`, random (eval only); top-feature explanation.

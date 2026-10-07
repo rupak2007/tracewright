@@ -304,6 +304,10 @@ Log transforms matter for Isolation Forest (split points are drawn uniformly bet
 | IF no better than robust-z | No ML value | G1 ships robust-z or off; result documented |
 | Feature drift between lab and real captures | Calibrated threshold off | Threshold re-calibration documented as a limitation; never tuned on test |
 
+## 8.1 Implementation notes (P5)
+
+`app/anomaly/` (`config` from `config/anomaly.yaml`, `features` the 16 features above, `scorers`, `triage`) and stage `anomaly` (S5) in `worker/pipeline.py`, which writes `anomalies.json` (status `off`/`skipped`/`ran`, scorer, top-50 scored windows with top-3 deviations, promoted finding IDs) and adds promoted `UNEXPLAINED_ANOMALY` findings (renumbered with the rest, so correlation treats them like any finding; base severity 1, confidence low, never mapped to ATT&CK). `ANOMALY_SCORER` defaults to `off` because **G1 has not been run** (`eval/decisions/G1.md`): there are no LAB-HOLDOUT captures. Choices made where the text was silent: the server and every other internal address get windows; "bytes out" includes the response bytes of sessions the host served; explanations quote transformed (log1p) values and the median of the fitted population; promotion needs a calibrated cut-off (otherwise nothing is promoted); the cap counts windows before consecutive ones are merged. Calibration (`python -m eval.run_anomaly calibrate`) reads BENIGN dev runs only; the cut-offs now in config rest on 37 windows and are placeholders.
+
 ## 9. Event correlation
 
 **Primary entity rules.** SCAN/BRUTE → source (the actor; may be external). DNSTUN/BEACON/EXFIL/UNEXPLAINED_ANOMALY → internal source host (the possibly affected host).

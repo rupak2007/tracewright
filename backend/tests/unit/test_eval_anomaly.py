@@ -205,7 +205,9 @@ def test_evaluate_refuses_test_and_reports_holdout_metrics_as_not_measurable_on_
     assert out["holdout_metrics"].startswith("not measurable")
     assert out["g1_decision"] == "not decided" and out["holdout_runs"] == []
     assert out["scorers"]["robust_z"]["precision_at_10"] is None
-    assert out["scorers"]["robust_z"]["benign_promoted_rate"] is None  # no calibrated cut-off yet
+    assert (
+        out["scorers"]["robust_z"]["benign_promoted_rate"] == 0.0
+    )  # at the dev-calibrated cut-off
 
 
 def test_main_writes_results_once(
@@ -227,3 +229,17 @@ def test_main_writes_results_once(
     assert data["runs"] == ["d1", "d2"] and "promotion_threshold = " in capsys.readouterr().out
     assert ra.main(argv) == 2 and "never overwritten" in capsys.readouterr().err
     assert ra.main(["evaluate", "--split", "test", "--analysis-dir", str(world["analysis"])]) == 2
+
+
+def test_committed_calibration_only_used_dev_runs_and_g1_is_recorded_as_not_run() -> None:
+    """P5 leakage check: no test capture id appears in any tuning log; G1 is honestly 'not run'."""
+    assigned = splits.load_manifest()["assigned"]
+    test_ids = {r for r, v in assigned.items() if v["split"] == "test"}
+    assert test_ids  # b01, b03, b06
+    for log in (REPO / "eval" / "results").glob("anomaly-calibration-*/*.json"):
+        text = log.read_text(encoding="utf-8")
+        assert not any(run_id in text for run_id in test_ids), log
+    cfg = load_anomaly_config(REPO / "config" / "anomaly.yaml")
+    assert cfg.promotion_threshold.robust_z is not None  # calibrated from the committed dev result
+    decision = (REPO / "eval" / "decisions" / "G1.md").read_text(encoding="utf-8")
+    assert "**Not run**" in decision and "`ANOMALY_SCORER=off`" in decision

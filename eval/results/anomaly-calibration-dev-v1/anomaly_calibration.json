@@ -1,0 +1,42 @@
+{
+  "scope": "BENIGN dev runs only; cut-off keeps at most 1% of pooled unexplained windows",
+  "runs": [
+    "b02",
+    "b04",
+    "b05"
+  ],
+  "pooled_windows": {
+    "robust_z": 37,
+    "iforest": 37
+  },
+  "promotion_threshold": {
+    "robust_z": 1163.9821516489585,
+    "iforest": 0.6877436677788328
+  },
+  "benign_promoted_rate_at_threshold": {
+    "robust_z": 0.0,
+    "iforest": 0.0
+  },
+  "window_s": 300.0,
+  "per_run": {
+    "b02": {
+      "capture_sha256": "88b8ddb0dd769a3a0733b46defbf27b84a059d9ef6b3e55fb75900357ea5a4d9",
+      "zeek_version": "9.0.0",
+      "windows": 36,
+      "rule_unexplained": 9
+    },
+    "b04": {
+      "capture_sha256": "10217f085c3b1eabdff355d534a10bc4d0afb959c1400df8d6f857f4f6379185",
+      "zeek_version": "9.0.0",
+      "windows": 18,
+      "rule_unexplained": 4
+    },
+    "b05": {
+      "capture_sha256": "645cd502a353ed3c984e45dfcc785e1848ff46ab2a4497e081652a9633e31dd2",
+      "zeek_version": "9.0.0",
+      "windows": 24,
+      "rule_unexplained": 24
+    }
+  },
+  "caveat": "few windows (small lab population): the cut-off rests on very few observations"
+}

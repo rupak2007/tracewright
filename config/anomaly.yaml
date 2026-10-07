@@ -22,6 +22,9 @@ iforest:
 # Promotion cut-offs per scorer: a window is promoted only above its scorer's cut-off, chosen so that at most
 # 1% of BENIGN dev windows exceed it (eval.run_anomaly calibrate). `null` = not calibrated, so nothing is
 # promoted. Never tuned on test.
+# Calibrated on the BENIGN dev runs b02, b04, b05 (eval/results/anomaly-calibration-dev-v1/): 37 pooled
+# rule-unexplained windows, so 1% allows zero exceedances and each cut-off sits just above the highest benign
+# score seen. Very little data: treat as a placeholder until a larger benign dev corpus exists.
 promotion_threshold:
-  robust_z: null
-  iforest: null
+  robust_z: 1163.9821516489586
+  iforest: 0.6877436677788328
