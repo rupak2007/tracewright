@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 import numpy as np
 import pandas as pd
@@ -121,3 +121,13 @@ def make_finding(
         evidence_refs=refs,
         evidence_count=count,
     )
+
+
+def group_indices(
+    df: pd.DataFrame, keys: list[str]
+) -> list[tuple[tuple[Any, ...], NDArray[np.intp]]]:
+    """Row positions of each key group, in sorted key order (typed wrapper over `.indices`)."""
+    return [
+        (key if isinstance(key, tuple) else (key,), np.asarray(idx, dtype=np.intp))
+        for key, idx in df.groupby(keys, sort=True).indices.items()
+    ]

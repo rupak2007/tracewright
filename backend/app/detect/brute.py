@@ -27,6 +27,7 @@ from app.detect.base import (
     DetectorOutput,
     MetricValue,
     epoch_seconds,
+    group_indices,
     make_finding,
 )
 from app.detect.config import BruteConfig
@@ -79,8 +80,8 @@ def _ftp_hits(inp: DetectorInput) -> list[_Hit]:
     if ftp.empty:
         return hits
     ftp = _sorted(ftp)
-    for (src, dst), idx in ftp.groupby(["orig_h", "resp_h"], sort=True).indices.items():
-        rows = ftp.iloc[np.asarray(idx, dtype=np.intp)]
+    for (src, dst), idx in group_indices(ftp, ["orig_h", "resp_h"]):
+        rows = ftp.iloc[idx]
         times = epoch_seconds(rows["ts"])
         count, lo, hi = max_count_window(times, cfg.window_s)
         if count < cfg.ftp_failures:
@@ -112,10 +113,8 @@ def _http_hits(inp: DetectorInput) -> list[_Hit]:
     http["host"] = http["host"].fillna("")
     http["uri"] = http["uri"].fillna("")
     best: dict[tuple[str, str], tuple[int, _Hit]] = {}
-    for (src, dst, _host, _uri), idx in http.groupby(
-        ["orig_h", "resp_h", "host", "uri"], sort=True
-    ).indices.items():
-        rows = http.iloc[np.asarray(idx, dtype=np.intp)]
+    for (src, dst, _host, _uri), idx in group_indices(http, ["orig_h", "resp_h", "host", "uri"]):
+        rows = http.iloc[idx]
         times = epoch_seconds(rows["ts"])
         count, lo, hi = max_count_window(times, cfg.window_s)
         if count < cfg.http_failures:
@@ -155,10 +154,8 @@ def _login_hits(inp: DetectorInput) -> list[_Hit]:
         if len(rows) < cfg.login_min_connections:
             continue
         rows = _sorted(rows)
-        for (src, dst, _port), idx in rows.groupby(
-            ["orig_h", "resp_h", "resp_p"], sort=True
-        ).indices.items():
-            group = rows.iloc[np.asarray(idx, dtype=np.intp)]
+        for (src, dst, _port), idx in group_indices(rows, ["orig_h", "resp_h", "resp_p"]):
+            group = rows.iloc[idx]
             hit = _best_login_window(service, str(src), str(dst), group, cfg)
             if hit is not None:
                 hits.append(hit)
