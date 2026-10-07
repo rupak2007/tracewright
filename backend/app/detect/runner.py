@@ -5,10 +5,11 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel
 
+from app.detect import scan
 from app.detect.base import Detector, DetectorInput, Finding
 
 # Appended to as each detector lands; the order here is the order they run in, not the output order.
-DETECTORS: tuple[Detector, ...] = ()
+DETECTORS: tuple[Detector, ...] = (scan.DETECTOR,)
 
 _TYPE_ORDER = {"SCAN": 0, "BRUTE": 1, "DNSTUN": 2, "BEACON": 3, "EXFIL": 4}
 
