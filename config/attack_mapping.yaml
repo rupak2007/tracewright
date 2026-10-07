@@ -1,0 +1,28 @@
+# Finding type -> ATT&CK technique mapping (architecture §10). "Consistent with", never attribution.
+# Every ID is validated at worker startup against the pinned bundle (config/attack.yaml).
+attack_version: "19.2"
+
+conditions:                       # how the `when` clauses below are evaluated
+  # PRD §10 says only "when outbound name volume is large": no number is specified. This is an
+  # unmeasured initial default (1 MB of query names toward one registered domain); tune on dev only.
+  high_outbound_name_volume_bytes: 1000000
+  http_tls_ports: [80, 443, 8000, 8080, 8443]
+  dns_ports: [53]
+
+mappings:
+  SCAN:
+    - {id: T1046, phrase: "consistent with network service discovery"}
+  BRUTE:
+    - {id: T1110.001, when: single_target, phrase: "consistent with password guessing"}
+    - {id: T1110.003, when: spray, phrase: "consistent with password spraying"}
+  DNSTUN:
+    - {id: T1071.004, phrase: "consistent with application-layer protocol abuse over DNS"}
+    - {id: T1048, when: high_outbound_name_volume, phrase: "consistent with exfiltration over an alternative protocol"}
+  BEACON:
+    - {id: T1071.001, when: http_or_tls, phrase: "consistent with application-layer communication over web protocols"}
+    - {id: T1071.004, when: dns, phrase: "consistent with application-layer communication over DNS"}
+    - {id: T1071, when: other, phrase: "consistent with application-layer protocol communication"}
+  EXFIL:
+    - {id: T1048, phrase: "consistent with exfiltration over an alternative protocol"}
+    - {id: T1041, when: shared_peer_with_beacon, phrase: "consistent with exfiltration over a command-and-control channel"}
+  UNEXPLAINED_ANOMALY: []

@@ -17,7 +17,14 @@ DETECTORS: tuple[Detector, ...] = (
     exfil.DETECTOR,
 )
 
-_TYPE_ORDER = {"SCAN": 0, "BRUTE": 1, "DNSTUN": 2, "BEACON": 3, "EXFIL": 4}
+_TYPE_ORDER = {
+    "SCAN": 0,
+    "BRUTE": 1,
+    "DNSTUN": 2,
+    "BEACON": 3,
+    "EXFIL": 4,
+    "UNEXPLAINED_ANOMALY": 5,
+}
 
 
 class DetectionReport(BaseModel):

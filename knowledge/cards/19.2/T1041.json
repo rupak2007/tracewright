@@ -1,0 +1,15 @@
+{
+  "description": "Adversaries may steal data by exfiltrating it over an existing command and control channel. Stolen data is encoded into the normal communications channel using the same protocol as command and control communications.",
+  "detection_notes": "",
+  "knowledge_id": "K-T1041",
+  "mitigations": [
+    "Data Loss Prevention",
+    "Network Intrusion Prevention"
+  ],
+  "name": "Exfiltration Over C2 Channel",
+  "tactics": [
+    "exfiltration"
+  ],
+  "technique_id": "T1041",
+  "url": "https://attack.mitre.org/techniques/T1041"
+}

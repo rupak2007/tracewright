@@ -1,0 +1,16 @@
+{
+  "description": "Adversaries may attempt to get a listing of services running on remote hosts and local network infrastructure devices, including those that may be vulnerable to remote software exploitation. Common methods to acquire this information include port, vulnerability, and/or wordlist scans using tools that are brought onto a system. Within cloud environments, adversaries may attempt to discover services running on other cloud hosts. Additionally, if the cloud environment is connected to a on-premises environment, adversaries may be able to identify services running on non-cloud systems as well.",
+  "detection_notes": "",
+  "knowledge_id": "K-T1046",
+  "mitigations": [
+    "Disable or Remove Feature or Program",
+    "Network Intrusion Prevention",
+    "Network Segmentation"
+  ],
+  "name": "Network Service Discovery",
+  "tactics": [
+    "discovery"
+  ],
+  "technique_id": "T1046",
+  "url": "https://attack.mitre.org/techniques/T1046"
+}

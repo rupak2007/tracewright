@@ -27,7 +27,14 @@ def test_shipped_config_loads_and_matches_the_documented_defaults() -> None:
     assert (cfg.dnstun.min_unique_subdomains, cfg.dnstun.min_mean_entropy) == (50, 3.5)
     assert (cfg.beacon.min_events, cfg.beacon.min_score, cfg.beacon.high_score) == (10, 0.8, 0.9)
     assert (cfg.exfil.min_outbound_bytes, cfg.exfil.min_modified_z) == (50_000_000, 3.5)
-    assert cfg.common.severity_base == {"SCAN": 2, "BRUTE": 3, "DNSTUN": 4, "BEACON": 4, "EXFIL": 5}
+    assert cfg.common.severity_base == {
+        "SCAN": 2,
+        "BRUTE": 3,
+        "DNSTUN": 4,
+        "BEACON": 4,
+        "EXFIL": 5,
+        "UNEXPLAINED_ANOMALY": 1,
+    }
 
 
 def test_config_hash_is_stable_and_sensitive_to_every_threshold() -> None:

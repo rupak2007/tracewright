@@ -1,0 +1,46 @@
+{
+  "attack_version": "19.2",
+  "bundle_sha256": "dc1639caa5501d720e280cf1cbd8fbe009884a0c9b3e6e9ed9d0c25166c3d8f4",
+  "techniques": {
+    "T1041": {
+      "deprecated": false,
+      "name": "Exfiltration Over C2 Channel",
+      "revoked": false
+    },
+    "T1046": {
+      "deprecated": false,
+      "name": "Network Service Discovery",
+      "revoked": false
+    },
+    "T1048": {
+      "deprecated": false,
+      "name": "Exfiltration Over Alternative Protocol",
+      "revoked": false
+    },
+    "T1071": {
+      "deprecated": false,
+      "name": "Application Layer Protocol",
+      "revoked": false
+    },
+    "T1071.001": {
+      "deprecated": false,
+      "name": "Web Protocols",
+      "revoked": false
+    },
+    "T1071.004": {
+      "deprecated": false,
+      "name": "DNS",
+      "revoked": false
+    },
+    "T1110.001": {
+      "deprecated": false,
+      "name": "Password Guessing",
+      "revoked": false
+    },
+    "T1110.003": {
+      "deprecated": false,
+      "name": "Password Spraying",
+      "revoked": false
+    }
+  }
+}

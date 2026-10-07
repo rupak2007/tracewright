@@ -17,7 +17,7 @@ from app.detect.config import DetectorsConfig
 from app.ingest.normalise import CaptureTables
 from app.profile.context import NetworkContext
 
-FindingType = Literal["SCAN", "BRUTE", "DNSTUN", "BEACON", "EXFIL"]
+FindingType = Literal["SCAN", "BRUTE", "DNSTUN", "BEACON", "EXFIL", "UNEXPLAINED_ANOMALY"]
 Confidence = Literal["low", "medium", "high"]
 MetricValue = int | float | str | bool | None
 

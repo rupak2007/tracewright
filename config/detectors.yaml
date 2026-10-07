@@ -14,6 +14,7 @@ common:
     DNSTUN: 4
     BEACON: 4
     EXFIL: 5
+    UNEXPLAINED_ANOMALY: 1
 
 scan:                               # DET-SCAN (PRD §10, architecture §7.1)
   window_short_s: 60
