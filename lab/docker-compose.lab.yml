@@ -64,7 +64,7 @@ services:
     cap_add: [NET_RAW, NET_ADMIN]
     security_opt: ["no-new-privileges:true"]
     volumes: ["../data/lab:/captures"]
-    command: ["sh", "-c", "exec tcpdump -i any -U -n -Z root -w /captures/${RUN_ID:?set RUN_ID}/capture.pcap not net 127.0.0.0/8"]
+    command: ["sh", "-c", "exec tcpdump -i any -B 262144 -U -n -Z root -w /captures/${RUN_ID:?set RUN_ID}/capture.pcap not net 127.0.0.0/8"]
     depends_on:
       services: { condition: service_healthy }
 

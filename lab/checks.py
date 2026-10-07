@@ -70,4 +70,23 @@ def check_run(
         result = check_episode(episode, conn, tolerance_s)
         if not result.ok:
             problems.append(f"{episode.episode_id}: {result.reason}")
+        gap = capture_gap_bytes(episode, conn, tolerance_s)
+        if gap:
+            problems.append(
+                f"{episode.episode_id}: capture is not intact: Zeek reports {gap} missed bytes "
+                "in this episode's connections (packets were dropped while recording)"
+            )
     return problems
+
+
+def capture_gap_bytes(episode: Episode, conn: pd.DataFrame, tolerance_s: float = 5.0) -> int:
+    """Bytes Zeek could not see (sequence gaps) on connections between the actor and its targets."""
+    if "missed_bytes" not in conn.columns:
+        return 0
+    lo = pd.Timestamp(episode.start - timedelta(seconds=tolerance_s))
+    hi = pd.Timestamp(episode.end + timedelta(seconds=tolerance_s))
+    targets = list(episode.targets)
+    forward = (conn["orig_h"] == episode.actor) & conn["resp_h"].isin(targets)
+    backward = (conn["resp_h"] == episode.actor) & conn["orig_h"].isin(targets)
+    mask = (conn["ts"] >= lo) & (conn["ts"] <= hi) & (forward | backward)
+    return int(conn.loc[mask, "missed_bytes"].sum())

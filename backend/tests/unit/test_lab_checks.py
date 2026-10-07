@@ -93,3 +93,15 @@ def test_check_run_reports_every_kind_of_problem() -> None:
 
 def test_check_run_without_capture_span_skips_only_the_span_check() -> None:
     assert check_run([episode()], "r001", conn((12, ACTOR, TARGET)), None, None) == []
+
+
+def test_capture_gaps_on_episode_connections_fail_the_run() -> None:
+    frame = conn((12, ACTOR, TARGET), (14, ACTOR, OTHER))
+    frame["missed_bytes"] = [0, 0]
+    first, last = T0.timestamp(), (T0 + timedelta(seconds=30)).timestamp()
+    assert check_run([episode()], "r001", frame, first, last) == []
+    frame["missed_bytes"] = [4096, 0]
+    problems = check_run([episode()], "r001", frame, first, last)
+    assert len(problems) == 1 and "4096 missed bytes" in problems[0]
+    frame["missed_bytes"] = [0, 4096]  # a gap on an unrelated connection is not this episode's
+    assert check_run([episode()], "r001", frame, first, last) == []
