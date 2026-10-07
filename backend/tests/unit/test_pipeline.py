@@ -59,13 +59,47 @@ def test_happy_path_produces_all_artifacts(tmp_path: Path, config_dir: Path) -> 
     status = analyze_capture(_pcap(tmp_path), out, _settings(tmp_path, config_dir, ZEEK_OK))
     assert status.status == "completed" and status.error_code is None
     assert status.zeek_version == "9.0.0" and status.sha256 is not None
-    assert set(status.stage_ms) == {"validate", "zeek_parse", "normalise", "profile"}
+    assert set(status.stage_ms) == {"validate", "zeek_parse", "normalise", "profile", "detect"}
     assert _status(out)["status"] == "completed"
     profile = read_profile(out)
     assert profile.connections == 2 and profile.zeek_version == "9.0.0"
     assert profile.normalise_lines_skipped == 1  # the {broken line
     assert len(read_tables(out / "tables").conn) == 2
     assert (out / "logs" / "zeek.stderr.txt").exists()
+    findings = json.loads((out / "findings.json").read_text())
+    assert findings["findings"] == []  # two benign connections: nothing fires
+    assert findings["investigation_id"] == f"inv-{status.sha256[:12]}"  # type: ignore[index]
+    assert set(findings["detector_versions"]) == {
+        "DET-SCAN",
+        "DET-BRUTE",
+        "DET-DNSTUN",
+        "DET-BEACON",
+        "DET-EXFIL",
+    }
+    assert len(findings["config_hash"]) == 64
+    assert set(profile.suppressed_findings) == set(findings["detector_versions"])
+
+
+def test_missing_detector_config_is_a_config_error_before_any_work(
+    tmp_path: Path, config_dir: Path
+) -> None:
+    broken = tmp_path / "cfg"
+    broken.mkdir()
+    for name in ("network.yaml", "profile.yaml"):
+        (broken / name).write_bytes((config_dir / name).read_bytes())
+    out = tmp_path / "out"
+    with pytest.raises(ConfigError):
+        analyze_capture(_pcap(tmp_path), out, _settings(tmp_path, broken, ZEEK_OK))
+    assert not out.exists()
+
+
+def test_findings_are_deterministic_across_runs(tmp_path: Path, config_dir: Path) -> None:
+    results = []
+    for name in ("a", "b"):
+        out = tmp_path / name
+        analyze_capture(_pcap(tmp_path), out, _settings(tmp_path, config_dir, ZEEK_OK))
+        results.append((out / "findings.json").read_bytes())
+    assert results[0] == results[1]
 
 
 def test_invalid_capture_fails_at_validate_and_never_runs_zeek(

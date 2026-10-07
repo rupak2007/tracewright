@@ -1,10 +1,11 @@
-"""Ingest stages S1-S3 for one capture: validate -> Zeek -> normalise -> profile.
+"""Analysis stages for one capture: validate -> Zeek -> normalise -> profile -> detect (S1-S4).
 
 Runs in the worker only. Writes under `out_dir`:
     zeek/*.log         raw Zeek JSON logs
     tables/*.parquet   normalised tables (all eight, empty ones included)
     logs/              Zeek stderr
-    profile.json       capture profile + data-quality warnings
+    profile.json       capture profile + data-quality warnings (+ suppressed finding counts)
+    findings.json      detector findings, thresholds applied, suppression counts (stage S4)
     status.json        lifecycle: running -> completed | failed, with stage, error and timings
 
 status.json mirrors the investigations.status/stage/error columns (architecture §15); the DB-backed
@@ -25,6 +26,9 @@ from pydantic import BaseModel
 from app.core.config import PipelineSettings
 from app.core.errors import IngestError, StartupCheckError, TracewrightError
 from app.core.logging import log_context
+from app.detect.base import DetectorInput
+from app.detect.config import load_detectors_config
+from app.detect.runner import run_detectors
 from app.ingest.capinfos import run_capinfos
 from app.ingest.normalise import normalise_logs
 from app.ingest.validate import validate_file
@@ -36,7 +40,7 @@ from app.worker.startup import check_zeek
 
 logger = logging.getLogger(__name__)
 
-STAGES = ("validate", "zeek_parse", "normalise", "profile")
+STAGES = ("validate", "zeek_parse", "normalise", "profile", "detect")
 
 
 class AnalysisStatus(BaseModel):
@@ -77,10 +81,11 @@ class _Run:
 
 
 def analyze_capture(pcap: Path, out_dir: Path, settings: PipelineSettings) -> AnalysisStatus:
-    """Run S1-S3. Configuration problems raise; capture/tool problems end in status 'failed'."""
+    """Run S1-S4. Configuration problems raise; capture/tool problems end in status 'failed'."""
     config_dir = settings.config_dir
     ctx = load_network_context(config_dir / "network.yaml")
     profile_cfg = load_profile_config(config_dir / "profile.yaml")
+    detectors_cfg = load_detectors_config(config_dir / "detectors.yaml")
     site_script = config_dir / "zeek" / "site.zeek"
 
     if out_dir.exists() and any(out_dir.iterdir()):
@@ -119,6 +124,15 @@ def analyze_capture(pcap: Path, out_dir: Path, settings: PipelineSettings) -> An
                 ctx,
                 profile_cfg,
             )
+            _write_json_atomic(out_dir / "profile.json", profile.model_dump_json(indent=2))
+        with run.stage("detect"):
+            report = run_detectors(
+                DetectorInput(tables, ctx, detectors_cfg, profile.capture.duration_s),
+                investigation_id=f"inv-{(run.status.sha256 or 'local')[:12]}",
+            )
+            _write_json_atomic(out_dir / "findings.json", report.model_dump_json(indent=2))
+            # FR-13: suppressed findings are reported in the capture profile, never dropped silently
+            profile = profile.model_copy(update={"suppressed_findings": report.suppressed})
             _write_json_atomic(out_dir / "profile.json", profile.model_dump_json(indent=2))
     except TracewrightError as exc:
         run.status.status = "failed"

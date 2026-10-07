@@ -62,6 +62,8 @@ class CaptureProfile(BaseModel):
     normalise_lines_skipped: int
     normalise_bad_values: int
     warnings: list[QualityWarning]
+    # detector id -> reason -> findings suppressed by network context (FR-13); filled in by stage S4
+    suppressed_findings: dict[str, dict[str, int]] = {}
 
 
 def _flow_bytes(conn: pd.DataFrame) -> pd.Series:

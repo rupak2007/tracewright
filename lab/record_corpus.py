@@ -33,6 +33,7 @@ def _stage_config(network_config: str) -> Path:
     (target / "zeek").mkdir(parents=True, exist_ok=True)
     shutil.copyfile(REPO / "config" / network_config, target / "network.yaml")
     shutil.copyfile(REPO / "config" / "profile.yaml", target / "profile.yaml")
+    shutil.copyfile(REPO / "config" / "detectors.yaml", target / "detectors.yaml")
     shutil.copyfile(REPO / "config" / "zeek" / "site.zeek", target / "zeek" / "site.zeek")
     return target
 

@@ -1,4 +1,4 @@
-"""`tracewright` command line. P1 provides `analyze` (stages S1-S3); detectors arrive in P3."""
+"""`tracewright` command line. `analyze` runs stages S1-S4 (ingest, profile, detectors)."""
 
 import argparse
 import json
@@ -18,7 +18,9 @@ EXIT_OK, EXIT_ANALYSIS_FAILED, EXIT_USAGE = 0, 1, 2
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tracewright", description="Offline PCAP investigation.")
     sub = parser.add_subparsers(dest="command", required=True)
-    analyze = sub.add_parser("analyze", help="validate, parse with Zeek, normalise and profile")
+    analyze = sub.add_parser(
+        "analyze", help="validate, parse with Zeek, normalise, profile and run the detectors"
+    )
     analyze.add_argument("pcap", type=Path, help="capture file (PCAP or PCAPNG)")
     analyze.add_argument("--out", type=Path, required=True, help="empty or new output directory")
     analyze.add_argument("--config-dir", type=Path, help="override CONFIG_DIR")
@@ -42,6 +44,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         profile = read_profile(args.out)
         summary["connections"] = profile.connections
         summary["warnings"] = [w.code for w in profile.warnings]
+        findings = json.loads((args.out / "findings.json").read_text(encoding="utf-8"))
+        summary["findings"] = len(findings["findings"])
     else:
         summary["error"] = {"code": status.error_code, "message": status.error_message}
     print(json.dumps(summary))

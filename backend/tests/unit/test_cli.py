@@ -33,7 +33,7 @@ def test_analyze_ok(tools: Path, tmp_path: Path, capsys: pytest.CaptureFixture[s
     assert main(["analyze", str(tools), "--out", str(out)]) == EXIT_OK
     summary = json.loads(capsys.readouterr().out)
     assert summary["status"] == "completed" and summary["connections"] == 1
-    assert "NO_DNS" in summary["warnings"]
+    assert "NO_DNS" in summary["warnings"] and summary["findings"] == 0
     assert (out / "profile.json").exists() and (out / "tables" / "conn.parquet").exists()
 
 
