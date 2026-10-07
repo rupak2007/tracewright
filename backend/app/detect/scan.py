@@ -113,7 +113,7 @@ class ScanDetector:
         candidates = pair_ports[pair_ports >= cfg.vertical_ports].index
         pair_idx = conn.groupby(["orig_h", "resp_h"], sort=True).indices
         for src, dst in candidates:
-            idx = pair_idx[(src, dst)]
+            idx = np.asarray(pair_idx[(src, dst)], dtype=np.intp)
             fast, lo, hi = max_distinct_window(times[idx], ports[idx].tolist(), cfg.window_short_s)
             if fast >= cfg.vertical_ports:
                 emit(src, "vertical", idx, lo, hi, cfg.window_short_s, [dst], fast, 1)
@@ -127,7 +127,7 @@ class ScanDetector:
         candidates = port_hosts[port_hosts >= cfg.horizontal_hosts].index
         port_idx = conn.groupby(["orig_h", "resp_p"], sort=True).indices
         for src, port in candidates:
-            idx = port_idx[(src, port)]
+            idx = np.asarray(port_idx[(src, port)], dtype=np.intp)
             hosts, lo, hi = max_distinct_window(times[idx], dsts[idx].tolist(), cfg.window_short_s)
             if hosts >= cfg.horizontal_hosts:
                 window = idx[lo:hi]
