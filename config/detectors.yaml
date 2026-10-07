@@ -1,0 +1,66 @@
+# Detector thresholds (FR-12; docs/PRD.md §10, docs/architecture.md §7).
+#
+# Every value below is the project's documented INITIAL DEFAULT. None of them has been tuned or
+# measured: no labelled attack capture exists yet (eval/datasets.md), so there is nothing to tune
+# against. Any future change needs a comment here with its reason, an entry in eval/REVISIONS.md,
+# and must be made on the `dev` split only (eval/PROTOCOL.md §5).
+version: 1
+
+common:
+  max_evidence_refs: 200            # evidence_refs kept per finding (full count in evidence_count)
+  severity_base:                    # architecture §9 base[type]
+    SCAN: 2
+    BRUTE: 3
+    DNSTUN: 4
+    BEACON: 4
+    EXFIL: 5
+
+scan:                               # DET-SCAN (PRD §10, architecture §7.1)
+  window_short_s: 60
+  window_long_s: 600
+  vertical_ports: 50                # distinct dst ports to ONE host within window_short_s
+  horizontal_hosts: 20              # distinct dst hosts on ONE port within window_short_s
+  slow_vertical_ports: 100          # distinct dst ports to ONE host within window_long_s
+  failed_states: [S0, REJ, RSTO, RSTR, RSTOS0, SH, OTH]
+  high_failed_share: 0.6            # confidence high at or above this failed-connection share
+
+brute:                              # DET-BRUTE (architecture §7.2)
+  window_s: 300
+  ftp_failures: 10
+  ftp_failure_code: 530
+  http_failures: 20
+  http_failure_codes: [401, 403]
+  login_min_connections: 10         # SSH/RDP/Telnet (opaque): connection-pattern inference
+  login_max_median_duration_s: 30
+  login_max_bytes_cv: 0.3           # coefficient of variation of orig_bytes
+  login_services:
+    ssh: [22]
+    rdp: [3389]
+    telnet: [23]
+  spray_min_targets: 5              # same source + service, this many targets -> variant "spray"
+
+dnstun:                             # DET-DNSTUN (architecture §7.3)
+  min_unique_subdomains: 50
+  min_mean_entropy: 3.5             # bits/char over the subdomain part
+  min_mean_subdomain_len: 30
+  txt_null_share: 0.5
+  txt_null_min_queries: 30
+  txt_null_qtypes: [TXT, "NULL"]   # quoted: bare NULL is YAML null
+
+beacon:                             # DET-BEACON (architecture §7.4)
+  min_events: 10
+  min_score: 0.8
+  high_score: 0.9
+  high_min_events: 20
+  coverage_span_fraction: 0.5       # s_cov = min(1, observed span / (fraction * capture span))
+  weights:
+    dispersion: 1.0
+    skew: 1.0
+    size: 1.0
+    coverage: 1.0
+
+exfil:                              # DET-EXFIL (architecture §7.5)
+  min_outbound_bytes: 50000000      # "50 MB" read as decimal megabytes
+  min_modified_z: 3.5
+  min_out_in_ratio: 5.0
+  weak_baseline_min_pairs: 20       # fewer pairs: z is not computed, floor only, low confidence

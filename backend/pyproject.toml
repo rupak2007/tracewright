@@ -13,6 +13,7 @@ dependencies = [
     "pandas>=2.2",
     "pyarrow>=18",
     "pyyaml>=6.0",
+    "tldextract>=5.4.0",
 ]
 
 [dependency-groups]
