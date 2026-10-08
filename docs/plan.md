@@ -258,6 +258,8 @@
 
 **Objective:** the analyst workflow in a browser, without any LLM.
 
+**Status (2026-10-08):** implemented and verified: all P7 views, generated API types, banned raw-HTML APIs (lint), CSP Nginx image in the compose stack, 15 vitest tests including the XSS fixture, and a Playwright end-to-end test that passed against the real stack on lab capture b02 (upload -> incident -> evidence -> slice download). The narrative tab arrives with P8. NFR-04 met (2 clicks).
+
 **Tasks**
 - Vite + React + TS strict; router; TanStack Query; generated API types.
 - Views: Investigations (upload, progress), Overview (profile, warnings, incidents, anomalies), Incident (storyline timeline with ECharts, finding cards with metric-vs-threshold, evidence table with `E-` IDs, ATT&CK cards, playbooks, template summary, slice download, feedback, report export).

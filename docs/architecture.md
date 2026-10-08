@@ -515,6 +515,16 @@ Code: `app/db/{models,jobs,persist}.py` (+ Alembic: `backend/alembic.ini`, `migr
 - All capture-derived strings rendered as text (React escaping); `dangerouslySetInnerHTML` is forbidden by lint rule.
 - API types generated from FastAPI's OpenAPI schema (`openapi-typescript`) to keep frontend and backend in sync.
 
+### 17.1 Implementation notes (P7)
+
+`frontend/`: Vite 8 + React 19 + TypeScript 5.9 (`strict`, `noUncheckedIndexedAccess`), React Router 7, TanStack Query 5, ECharts 6 (tree-shaken, SVG renderer). Types come from the backend: `scripts/export_openapi.py` writes `frontend/openapi.json`, `npm run gen:api` generates `src/api/schema.ts`, and CI fails when the committed schema drifts from the API (`--check`).
+
+- **Views**: Investigations (streaming upload, status polling), Overview (profile, warnings, ranked incidents with links, anomaly list labelled "unusual relative to this capture"), Incident (template summary with citation chips that move focus to the cited `E-n` row, storyline timeline including linked incidents, finding cards with metric-versus-threshold bars, packet-slice and feedback controls, evidence table with paging and a per-finding filter, ATT&CK cards, report export). **NFR-04**: upload -> incident list -> top incident (evidence on that page) is 2 clicks after completion.
+- **Safety**: every capture-derived string is a React text node; ESLint bans `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML` and `insertAdjacentHTML`; component tests render a DNS name containing `<img onerror>` in the finding card, evidence table and summary and assert no element is created. Nginx (unprivileged, read-only root) serves the UI with a CSP that allows only same-origin scripts and styles (`style-src-attr 'unsafe-inline'` is needed for ECharts' SVG style attributes and is the one relaxation), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and proxies `/api` with request buffering off so uploads stream to the API.
+- **Accessibility basics**: skip link, landmarks, labelled controls, visible focus, severity and confidence as words plus a shape, bars with text alternatives and a "timeline as a table", `aria-live` regions for status.
+- **Tests**: vitest component/unit tests (15), and one Playwright test (`frontend/e2e/upload-to-slice.spec.ts`) that uploads a capture, opens the top incident, checks evidence, citation focus and the threshold bars, and downloads a slice; it uses the machine's installed Chrome and is skipped without `E2E_CAPTURE` (no capture is committed). Verified on lab capture b02 against the compose stack.
+- **Not built in P7**: the narrative tab (P8); the UI offers the template summary only.
+
 ## 18. Docker architecture
 
 ```yaml

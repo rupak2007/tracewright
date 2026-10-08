@@ -11,6 +11,16 @@ jobs:
   backend:
     name: lint, type-check, test
     runs-on: ubuntu-latest
+    services:
+      postgres:  # the opt-in PostgreSQL tests: migration drift and SKIP LOCKED
+        image: postgres:16.15
+        env:
+          POSTGRES_PASSWORD: pw
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:pw@127.0.0.1:5432/postgres
     defaults:
       run:
         working-directory: backend
@@ -25,12 +35,35 @@ jobs:
       - run: uv run ruff format --check . ../lab ../eval
       - run: uv run mypy
       - run: uv run pytest
+      - name: Frontend API schema is up to date with the backend
+        working-directory: .
+        run: uv run --project backend python scripts/export_openapi.py --check
       - name: Corpus integrity (manifest immutability, hashes, provenance, eligibility)
         working-directory: .
         run: uv run --project backend python -m eval.splits validate --against-git
       - name: Corpus requirement report (informational; unmet items stay unmet)
         working-directory: .
         run: uv run --project backend python -m eval.splits report
+
+  frontend:
+    name: web UI typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
 
   docker:
     name: images build, zeek pinned, worker sandbox
@@ -57,4 +90,10 @@ jobs:
         run: |
           docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait
           curl --fail --silent http://127.0.0.1:8000/api/v1/health
-          docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+          curl --fail --silent http://127.0.0.1:8080/api/v1/health   # through the web proxy
+          curl --silent --head http://127.0.0.1:8080/ | grep -i "^content-security-policy"
+      - name: API end-to-end over HTTP (upload, analysis, slice, feedback, reports, delete)
+        run: python scripts/e2e_api.py fx/basic.pcap --base http://127.0.0.1:8080
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v

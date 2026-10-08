@@ -1,4 +1,4 @@
-# Tracewright stack (architecture §18). `web` (P7) and `ollama` (P8, profile `llm`) are added with their phases.
+# Tracewright stack (architecture §18). `ollama` (P8, profile `llm`) is added with its phase.
 # Trust boundary: untrusted capture bytes are parsed only in `worker`, which sits on an
 # `internal: true` network (no egress) with a read-only filesystem and no capabilities.
 
@@ -81,4 +81,19 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: on-failure
+
+  web:
+    build:
+      context: ./frontend
+    networks: [edge]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
     restart: on-failure
