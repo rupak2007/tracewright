@@ -1,4 +1,4 @@
-# Tracewright stack (architecture §18). `ollama` (P8, profile `llm`) is added with its phase.
+# Tracewright stack (architecture §18). `ollama` (profile `llm`) is optional and off by default.
 # Trust boundary: untrusted capture bytes are parsed only in `worker`, which sits on an
 # `internal: true` network (no egress) with a read-only filesystem and no capabilities.
 
@@ -11,6 +11,7 @@ volumes:
   pgdata: {}
   uploads: {}
   artifacts: {}
+  ollama: {}
 
 services:
   db:
@@ -66,8 +67,10 @@ services:
       - uploads:/data/uploads
       - artifacts:/data/artifacts:ro
       - ./config:/config:ro
+      - ./knowledge:/knowledge:ro
     environment:
       CONFIG_DIR: /config
+      KNOWLEDGE_DIR: /knowledge
     env_file: .env
     depends_on:
       db:
@@ -97,3 +100,17 @@ services:
       api:
         condition: service_healthy
     restart: on-failure
+
+  # Optional local model for the narrative (gate G2 is not run: see eval/decisions/G2.md). Start it
+  # with `--profile llm` and set LLM_PROVIDER=ollama, LLM_MODEL, LLM_BASE_URL=http://ollama:11434.
+  # It sits on the internal network only (no egress), so the model must be put into the `ollama`
+  # volume beforehand (docs/architecture.md section 13). It only ever sees the pseudonymised pack.
+  ollama:
+    profiles: [llm]
+    image: ollama/ollama:0.40.1@sha256:69f27594d8127cb43db1edcafa5e2d3cd8f88bdbc54a2cf3ceb11b8d138a24b1
+    networks: [internal]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped

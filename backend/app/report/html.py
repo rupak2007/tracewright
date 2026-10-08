@@ -7,7 +7,9 @@ from collections.abc import Mapping
 from html import escape
 
 from app.profile.profile import CaptureProfile
+from app.report import narrative_block
 from app.report.model import AnalysisOutput, IncidentDetail
+from app.report.narrative_block import NarrativeBlock
 from app.report.render import LIMITATIONS, Feedback
 
 _STYLE = (
@@ -30,7 +32,23 @@ def _table(headers: list[str], rows: list[list[object]]) -> str:
     return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
 
 
-def _incident(detail: IncidentDetail) -> list[str]:
+def _narrative(block: NarrativeBlock) -> list[str]:
+    out = ["<h3>Narrative (optional, machine-generated)</h3>"]
+    items: list[str] = []
+    for kind, text in narrative_block.lines(block, _e):
+        if kind.startswith("h_") or kind in ("label", "summary"):
+            if items:
+                out.append("<ul>" + "".join(items) + "</ul>")
+                items = []
+            out.append(f"<h4>{text}</h4>" if kind.startswith("h_") else f"<p>{text}</p>")
+        else:
+            items.append(f"<li>{text}</li>")
+    if items:
+        out.append("<ul>" + "".join(items) + "</ul>")
+    return out
+
+
+def _incident(detail: IncidentDetail, narrative: NarrativeBlock | None = None) -> list[str]:
     inc = detail.incident
     agg = {e.finding_id: e.local_id for e in detail.evidence if e.kind == "aggregate"}
     out = [
@@ -40,6 +58,7 @@ def _incident(detail: IncidentDetail) -> list[str]:
         f"{_e(', '.join(inc.types))}. Severity is an ordering aid, not a risk score.</p>",
         "<h3>Summary</h3>",
         *[f"<p>{_e(line)}</p>" for line in detail.summary.splitlines()],
+        *(_narrative(narrative) if narrative is not None else []),
         "<h3>Findings</h3>",
     ]
     for f in detail.findings:
@@ -107,6 +126,7 @@ def render_html(
     title: str = "Tracewright report",
     manifest: Mapping[str, object] | None = None,
     feedback: Feedback | None = None,
+    narratives: Mapping[str, NarrativeBlock] | None = None,
 ) -> str:
     body = [
         f"<h1>{_e(title)}</h1>",
@@ -148,7 +168,7 @@ def render_html(
     else:
         body.append("<p>No incidents: no detector fired on this capture.</p>")
     for detail in out.incidents:
-        body += _incident(detail)
+        body += _incident(detail, (narratives or {}).get(detail.incident.id))
     if feedback:
         body.append("<h2>Analyst feedback</h2>")
         body.append(

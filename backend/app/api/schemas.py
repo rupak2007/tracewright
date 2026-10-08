@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.explain.schema import NarrativeOutput
+
 FeedbackLabel = Literal["true_positive", "false_positive", "expected_benign"]
 
 
@@ -154,3 +156,18 @@ class HealthResponse(BaseModel):
     status: Literal["ok"]
     db: Literal["ok"]
     worker: Literal["alive", "unknown"]
+
+
+class NarrativeOut(BaseModel):
+    """Optional machine-generated narrative. `output` is present ONLY when it passed validation;
+    otherwise the template summary of the incident is what to show."""
+
+    status: Literal["not_requested", "pending", "validated", "rejected", "unavailable"]
+    label: str
+    provider: str
+    model: str
+    prompt_hash: str
+    reasons: list[str]
+    output: NarrativeOutput | None
+    entities: dict[str, str]  # pseudonym -> real value, for display only
+    created_at: datetime | None

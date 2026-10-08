@@ -11,7 +11,9 @@ import re
 from collections.abc import Mapping, Sequence
 
 from app.profile.profile import CaptureProfile
+from app.report import narrative_block
 from app.report.model import AnalysisOutput, IncidentDetail
+from app.report.narrative_block import NarrativeBlock
 
 _SPECIAL = re.compile(r"([\\`*_\[\]<>|~$&])")
 _WHITESPACE = re.compile(r"\s+")
@@ -56,7 +58,19 @@ def _capture_section(profile: CaptureProfile | None, out: AnalysisOutput) -> lis
     return [*lines, ""]
 
 
-def _incident_section(detail: IncidentDetail) -> list[str]:
+def _narrative_section(block: NarrativeBlock) -> list[str]:
+    lines = ["### Narrative (optional, machine-generated)", ""]
+    for kind, text in narrative_block.lines(block, md_escape):
+        if kind.startswith("h_"):
+            lines += ["", f"**{text}**", ""]
+        elif kind in ("label", "summary"):
+            lines += [text, ""]
+        else:
+            lines.append(f"- {text}")
+    return [*lines, ""]
+
+
+def _incident_section(detail: IncidentDetail, narrative: NarrativeBlock | None = None) -> list[str]:
     inc = detail.incident
     lines = [
         f"## {inc.id}: {inc.severity_label} (score {inc.severity_score}), "
@@ -74,7 +88,10 @@ def _incident_section(detail: IncidentDetail) -> list[str]:
         md_escape(s) if i == 0 else _escape_summary(s)
         for i, s in enumerate(detail.summary.splitlines())
     ]
-    lines += ["", "### Findings", ""]
+    lines.append("")
+    if narrative is not None:
+        lines += _narrative_section(narrative)
+    lines += ["### Findings", ""]
     for f in detail.findings:
         agg = _aggregate_id(detail, f.id)
         lines += [
@@ -183,6 +200,7 @@ def render_markdown(
     title: str = "Tracewright report",
     manifest: Mapping[str, object] | None = None,
     feedback: Feedback | None = None,
+    narratives: Mapping[str, NarrativeBlock] | None = None,
 ) -> str:
     lines = [
         f"# {md_escape(title)}",
@@ -208,7 +226,7 @@ def render_markdown(
         lines.append("No incidents: no detector fired on this capture.")
     lines.append("")
     for detail in out.incidents:
-        lines += _incident_section(detail)
+        lines += _incident_section(detail, (narratives or {}).get(detail.incident.id))
     lines += _feedback_section(feedback)
     lines += _manifest_section(manifest)
     lines += ["## Limitations", "", *[f"- {md_escape(item)}" for item in LIMITATIONS], ""]

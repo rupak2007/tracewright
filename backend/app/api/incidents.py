@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 
 from app.api.deps import AuthDep, SessionDep, SettingsDep
 from app.api.errors import ApiError
+from app.api.narratives import validated_narrative_block
 from app.api.schemas import (
     EvidencePage,
     FeedbackIn,
@@ -77,7 +78,10 @@ def get_evidence(
 
 @router.get("/incidents/{incident_id}/report")
 def get_report(
-    incident_id: int, session: SessionDep, format: Literal["md", "html"] = "md"
+    incident_id: int,
+    session: SessionDep,
+    settings: SettingsDep,
+    format: Literal["md", "html"] = "md",
 ) -> Response:
     inc = _incident(session, incident_id)
     inv = session.get(Investigation, inc.investigation_id)
@@ -102,12 +106,13 @@ def get_report(
     feedback: dict[str, list[tuple[str, str]]] = {}
     for local_id, label, note in pairs:
         feedback.setdefault(local_id, []).append((label, note))
+    narratives = validated_narrative_block(session, inc, inv, settings)
     title = f"Tracewright incident report {inc.local_id}"
     if format == "html":
-        body = render_html(analysis, profile, title, inv.manifest, feedback)
+        body = render_html(analysis, profile, title, inv.manifest, feedback, narratives)
         media = "text/html; charset=utf-8"
     else:
-        body = render_markdown(analysis, profile, title, inv.manifest, feedback)
+        body = render_markdown(analysis, profile, title, inv.manifest, feedback, narratives)
         media = "text/markdown; charset=utf-8"
     name = f"tracewright-{inc.local_id}.{format}"
     return Response(

@@ -500,6 +500,60 @@
         "title": "IncidentSummary",
         "type": "object"
       },
+      "Inference": {
+        "additionalProperties": false,
+        "properties": {
+          "alternative_explanations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Alternative Explanations",
+            "type": "array"
+          },
+          "confidence": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "knowledge_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Knowledge Ids",
+            "type": "array"
+          },
+          "statement": {
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "supporting_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Supporting Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "statement",
+          "supporting_ids",
+          "confidence",
+          "alternative_explanations"
+        ],
+        "title": "Inference",
+        "type": "object"
+      },
       "InvestigationDetail": {
         "properties": {
           "created_at": {
@@ -736,6 +790,139 @@
         "title": "LinkOut",
         "type": "object"
       },
+      "NarrativeOut": {
+        "description": "Optional machine-generated narrative. `output` is present ONLY when it passed validation;\notherwise the template summary of the incident is what to show.",
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "entities": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Entities",
+            "type": "object"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NarrativeOutput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prompt_hash": {
+            "title": "Prompt Hash",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "not_requested",
+              "pending",
+              "validated",
+              "rejected",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "label",
+          "provider",
+          "model",
+          "prompt_hash",
+          "reasons",
+          "output",
+          "entities",
+          "created_at"
+        ],
+        "title": "NarrativeOut",
+        "type": "object"
+      },
+      "NarrativeOutput": {
+        "additionalProperties": false,
+        "properties": {
+          "inferences": {
+            "items": {
+              "$ref": "#/components/schemas/Inference"
+            },
+            "maxItems": 10,
+            "title": "Inferences",
+            "type": "array"
+          },
+          "observed": {
+            "items": {
+              "$ref": "#/components/schemas/Observed"
+            },
+            "maxItems": 20,
+            "title": "Observed",
+            "type": "array"
+          },
+          "open_questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Open Questions",
+            "type": "array"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/Recommendation"
+            },
+            "maxItems": 10,
+            "title": "Recommendations",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 1200,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "observed",
+          "inferences",
+          "recommendations",
+          "open_questions"
+        ],
+        "title": "NarrativeOutput",
+        "type": "object"
+      },
       "NetworkOut": {
         "properties": {
           "allowlist": {
@@ -767,6 +954,58 @@
           "allowlist"
         ],
         "title": "NetworkOut",
+        "type": "object"
+      },
+      "Observed": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "statement": {
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "statement",
+          "evidence_ids"
+        ],
+        "title": "Observed",
+        "type": "object"
+      },
+      "Recommendation": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Action",
+            "type": "string"
+          },
+          "rationale_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Rationale Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "action",
+          "rationale_ids"
+        ],
+        "title": "Recommendation",
         "type": "object"
       },
       "SliceAccepted": {
@@ -1267,6 +1506,114 @@
           }
         },
         "summary": "Get Evidence"
+      }
+    },
+    "/api/v1/incidents/{incident_id}/narrative": {
+      "get": {
+        "operationId": "get_narrative_api_v1_incidents__incident_id__narrative_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "title": "Incident Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NarrativeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Narrative"
+      },
+      "post": {
+        "operationId": "start_narrative_api_v1_incidents__incident_id__narrative_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "title": "Incident Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NarrativeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Narrative"
       }
     },
     "/api/v1/incidents/{incident_id}/report": {
