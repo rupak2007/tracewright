@@ -258,7 +258,7 @@
 
 **Objective:** the analyst workflow in a browser, without any LLM.
 
-**Status (2026-10-08):** implemented and verified: all P7 views, generated API types, banned raw-HTML APIs (lint), CSP Nginx image in the compose stack, 15 vitest tests including the XSS fixture, and a Playwright end-to-end test that passed against the real stack on lab capture b02 (upload -> incident -> evidence -> slice download). The narrative tab arrives with P8. NFR-04 met (2 clicks).
+**Status (2026-10-08):** implemented and verified: all P7 views, generated API types, banned raw-HTML APIs (lint), CSP Nginx image in the compose stack, 15 vitest tests including the XSS fixture, and a Playwright end-to-end test that passed against the real stack on lab capture b02 (upload -> incident -> evidence -> slice download). The narrative panel was added with P8. NFR-04 met (2 clicks).
 
 **Tasks**
 - Vite + React + TS strict; router; TanStack Query; generated API types.
@@ -308,6 +308,8 @@
 **Acceptance criteria (G2)**
 - G2 metrics computed from audit sheets; decision recorded; default configuration matches the decision.
 - With the provider down, the UI shows the template and status `unavailable`.
+
+**Status (2026-10-08):** implemented and verified with scripted providers: pseudonymiser, evidence pack (injection fixture), six-check validator (98% coverage), repair-once and template fallback, provider clients over a mocked transport, API endpoints and `narratives` persistence, UI panel (badge, citation chips, real values behind pseudonyms), validated-only embedding in the Markdown/HTML reports, optional `ollama` compose profile, and `eval/run_llm.py` / `eval/score_llm.py` / `eval/llm_eval.py` with blinded sheets. **G2 is NOT RUN**: no model was run on any incident, there are no test incidents or raters, and `eval/decisions/G2.md` records the default `LLM_PROVIDER=none`. No validator pass rate or preference number exists.
 
 ---
 

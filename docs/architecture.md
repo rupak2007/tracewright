@@ -433,6 +433,13 @@ Rules for building the pack: IPs → `H<n>`/`X<n>`; domains/SNI/Host → `D<n>`;
 
 **Evaluation.** Section 20.4; G2 decides whether the narrative feature is enabled in the default configuration.
 
+**Implementation notes (P8, as built).**
+- The narrative is generated in the API (background task), never in the worker; the worker still has no egress. `POST /incidents/{id}/narrative` returns 202 and `GET` returns `not_requested | pending | validated | rejected | unavailable`; `output` is non-null only for `validated`, the raw model text is stored in `narratives.raw_output` for evaluation and never returned.
+- Pseudonyms are `H<n>` (internal), `X<n>` (external), `D<n>` (domain), numbered by first use inside the pack; the mapping is rebuilt identically on every read and returned only with a validated narrative, for display, after validation. Report embedding substitutes the real values at render time and escapes them like every other capture-derived string.
+- Validator rules that go beyond the first sketch: ports and counts (a bare integer) must match the cited evidence exactly (the +-1% tolerance applies only to decimals and unit-bearing values, with percent/byte/time unit normalisation); relative times (`T+HH:MM:SS`) must appear in the cited evidence; IPv4/IPv6/domain-like strings and any real value from the mapping are rejected anywhere in the text.
+- The optional `ollama` compose service (profile `llm`) is on the internal network only. Because it has no egress, put the model into its volume first, for example: `docker run --rm -v tracewright_ollama:/root/.ollama --entrypoint sh ollama/ollama:0.40.1 -c "ollama serve & sleep 5; ollama pull <model>"`, then set `LLM_PROVIDER=ollama`, `LLM_MODEL`, `LLM_BASE_URL=http://ollama:11434`. External providers (`openai_compatible`, `anthropic`) exist only when explicitly configured with a key from the environment; they receive the pseudonymised pack and nothing else.
+- G2 status: tooling complete, **gate not run** (`eval/decisions/G2.md`).
+
 **Failure modes.**
 | Failure | Effect | Mitigation |
 |---|---|---|

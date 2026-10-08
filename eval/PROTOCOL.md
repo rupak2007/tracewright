@@ -97,4 +97,4 @@ Re-running an evaluation from its manifest must give identical metrics (NFR-02).
 | Detectors, matching rule, harness | Implemented (P3, `eval/run_detectors.py`, `eval/matching.py`); thresholds are the untuned PRD defaults |
 | Detector results | **Attack metrics: not measurable** (no labelled attack episode exists). Benign false positives on the 3 `dev` runs only: `eval/results/dev-benign-baseline-v1/`. Nothing evaluated on `test` |
 | G1 | Not run |
-| G2 | Not run |
+| G2 | Not run (tooling built and tested with scripted providers: `eval/run_llm.py`, `eval/score_llm.py`, `eval/llm_eval.py`; no model was run on any incident, no raters; `eval/decisions/G2.md`, `eval/REVISIONS.md` #8) |
