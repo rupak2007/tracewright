@@ -1,0 +1,105 @@
+{
+  "results": [
+    {
+      "capture": "synthetic-1M.pcap",
+      "bytes": 209637048,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 117.25,
+      "pipeline_seconds": 115.97,
+      "max_child_rss_mb": 386.3,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 2506,
+        "zeek_parse": 75674,
+        "normalise": 8643,
+        "profile": 8521,
+        "detect": 11944,
+        "anomaly": 27,
+        "correlate": 0,
+        "explain": 80
+      },
+      "connections": 71428,
+      "findings": 0,
+      "incidents": 0,
+      "outcome": "completed",
+      "capinfos": "/in/c,999992",
+      "repeat": 1
+    },
+    {
+      "capture": "synthetic-1M.pcap",
+      "bytes": 209637048,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 99.86,
+      "pipeline_seconds": 97.47,
+      "max_child_rss_mb": 389.6,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 1899,
+        "zeek_parse": 62779,
+        "normalise": 6128,
+        "profile": 4335,
+        "detect": 10771,
+        "anomaly": 63,
+        "correlate": 0,
+        "explain": 115
+      },
+      "connections": 71428,
+      "findings": 0,
+      "incidents": 0,
+      "outcome": "completed",
+      "capinfos": "/in/c,999992",
+      "repeat": 2
+    },
+    {
+      "capture": "synthetic-1M.pcap",
+      "bytes": 209637048,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 168.78,
+      "pipeline_seconds": 165.74,
+      "max_child_rss_mb": 394.7,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 5123,
+        "zeek_parse": 121649,
+        "normalise": 6284,
+        "profile": 5500,
+        "detect": 8955,
+        "anomaly": 24,
+        "correlate": 7,
+        "explain": 60
+      },
+      "connections": 71428,
+      "findings": 0,
+      "incidents": 0,
+      "outcome": "completed",
+      "capinfos": "/in/c,999992",
+      "repeat": 3
+    }
+  ],
+  "host": {
+    "platform": "Windows-11-10.0.22621-SP0",
+    "processor": "Intel64 Family 6 Model 158 Stepping 10, GenuineIntel",
+    "docker_cpus": 6,
+    "docker_memory_bytes": 4077727744,
+    "docker_os": "Docker Desktop (containerized)"
+  },
+  "image": "tracewright-worker:latest",
+  "git": {
+    "commit": "f914ee72e46ceda67644c4b533f76b757637e9a0",
+    "dirty": true
+  },
+  "generated_at": "2026-10-08T15:56:29.392892+00:00",
+  "note": "Captures are real benign lab captures cut/concatenated for sizing only."
+}
