@@ -9,6 +9,7 @@ other fields are ignored, and the client filename is kept as sanitised metadata 
 
 from typing import TYPE_CHECKING, Any, cast
 
+from python_multipart.exceptions import MultipartParseError
 from python_multipart.multipart import MultipartParser, parse_options_header
 from starlette.requests import Request
 
@@ -108,10 +109,14 @@ async def receive_capture(request: Request, settings: Settings) -> StoredCapture
                 raise ApiError(413, "FILE_TOO_LARGE", "The request exceeds the upload limit.")
             parser.write(chunk)
         parser.finalize()
-    except BaseException:
+    except BaseException as exc:
         collector.abort()
         if collector.stored is not None:  # finished before a later error in the same request
             collector.stored.path.unlink(missing_ok=True)
+        if isinstance(exc, MultipartParseError):
+            raise ApiError(
+                400, "BAD_MULTIPART", "The upload is not a valid multipart body."
+            ) from exc
         raise
     if collector.stored is None:
         raise ApiError(400, "NO_FILE", "The request has no 'file' part.")

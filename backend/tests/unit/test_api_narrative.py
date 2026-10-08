@@ -196,3 +196,28 @@ def test_a_validated_narrative_is_labelled_in_both_reports_and_a_rejected_one_is
     world.client.post(f"/api/v1/incidents/{iid}/narrative")
     md = world.client.get(f"/api/v1/incidents/{iid}/report?format=md").text
     assert "Narrative (optional" not in md and "compromised" not in md.lower()
+
+
+def test_a_pending_narrative_that_outlived_its_task_is_reported_unavailable(world: World) -> None:
+    """Regression (release audit): an API restart used to leave `pending` forever, and the UI
+    disables its button while pending, so the analyst could never retry."""
+    from datetime import timedelta
+
+    from app.db.models import utcnow
+
+    iid = incident_ids(world)[0]
+    with Session(world.engine) as s:
+        s.add(Narrative(incident_id=iid, status="pending", created_at=utcnow()))
+        s.commit()
+    fresh = world.client.get(f"/api/v1/incidents/{iid}/narrative").json()
+    assert fresh["status"] == "pending"  # a recent request is still running
+    with Session(world.engine) as s:
+        row = s.scalars(select(Narrative).where(Narrative.incident_id == iid)).one()
+        row.created_at = utcnow() - timedelta(hours=1)
+        s.commit()
+    stale = world.client.get(f"/api/v1/incidents/{iid}/narrative").json()
+    assert stale["status"] == "unavailable" and "did not finish" in stale["reasons"][0]
+    assert stale["output"] is None
+    use(world, Scripted(json.dumps(narrative_for(world, iid))))
+    assert world.client.post(f"/api/v1/incidents/{iid}/narrative").status_code == 202
+    assert world.client.get(f"/api/v1/incidents/{iid}/narrative").json()["status"] == "validated"

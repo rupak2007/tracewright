@@ -453,3 +453,56 @@ def test_health_reports_database_and_worker_heartbeat(world: World) -> None:
         jobs.beat(s, "w1")
         s.commit()
     assert world.client.get("/api/v1/health").json()["worker"] == "alive"
+
+
+# ---- release-audit regressions: malformed input must never be a 500 -----------------------
+def test_a_non_ascii_bearer_token_is_rejected_not_a_server_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for w in make_world(tmp_path, monkeypatch, API_TOKEN="tok"):  # noqa: S106
+        bad = {"Authorization": "Bearer t\u00e9k".encode("latin-1")}
+        r = w.client.get("/api/v1/investigations", headers=bad)
+        assert r.status_code == 401 and r.json()["error"]["code"] == "UNAUTHORIZED"
+        ok = w.client.get("/api/v1/investigations", headers={"Authorization": "Bearer tok"})
+        assert ok.status_code == 200
+
+
+def test_a_malformed_multipart_body_is_a_400_and_leaves_nothing_behind(world: World) -> None:
+    before = set(world.uploads.iterdir())
+    huge_header = "a" * 5000  # a filename longer than the multipart parser's header limit
+    r = post_file(world, PCAP_HEADER, name=huge_header + ".pcap")
+    assert r.status_code == 400 and r.json()["error"]["code"] == "BAD_MULTIPART"
+    r = world.client.post(
+        "/api/v1/investigations",
+        content=b"--x\r\nContent-Disposition: form-data; name=file\r\n\r\ngarbage",
+        headers={"Content-Type": "multipart/form-data; boundary=x"},
+    )
+    assert r.status_code < 500
+    assert set(world.uploads.iterdir()) == before
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/incidents/99999999999999999999",
+        "/api/v1/incidents/0",
+        "/api/v1/incidents/-3",
+        "/api/v1/incidents/99999999999999999999/evidence",
+        "/api/v1/incidents/1/evidence?offset=99999999999999999999",
+        "/api/v1/incidents/1/evidence?finding_id=99999999999999999999",
+        "/api/v1/incidents/99999999999999999999/narrative",
+        "/api/v1/incidents/99999999999999999999/report",
+        "/api/v1/slices/99999999999999999999",
+        "/api/v1/slices/99999999999999999999/download",
+    ],
+)
+def test_out_of_range_ids_are_a_422_or_404_never_a_server_error(world: World, path: str) -> None:
+    assert world.client.get(path).status_code in (404, 422)
+
+
+def test_out_of_range_ids_are_rejected_on_the_write_routes_too(world: World) -> None:
+    big = 99999999999999999999
+    assert world.client.post(f"/api/v1/findings/{big}/slice").status_code == 422
+    r = world.client.post(f"/api/v1/findings/{big}/feedback", json={"label": "true_positive"})
+    assert r.status_code == 422
+    assert world.client.post(f"/api/v1/incidents/{big}/narrative").status_code == 422

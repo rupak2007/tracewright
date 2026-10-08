@@ -6,13 +6,14 @@ validated narrative, and the real values behind the pseudonyms are returned sepa
 """
 
 from collections.abc import Callable
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Request
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import AuthDep, SessionDep, SettingsDep
+from app.api.deps import AuthDep, RowId, SessionDep, SettingsDep
 from app.api.errors import ApiError
 from app.api.schemas import NarrativeOut
 from app.attack.cards import load_cards
@@ -110,7 +111,7 @@ def run_generation(
 
 @router.post("/incidents/{incident_id}/narrative", status_code=202, response_model=NarrativeOut)
 def start_narrative(
-    incident_id: int,
+    incident_id: RowId,
     request: Request,
     background: BackgroundTasks,
     session: SessionDep,
@@ -133,6 +134,14 @@ def start_narrative(
     return view(session, inc, settings)
 
 
+def _is_stale(created_at: datetime | None) -> bool:
+    """A pending narrative older than two provider calls (plus slack) is not still running."""
+    if created_at is None:
+        return False
+    limit = timedelta(seconds=2 * get_llm_settings().llm_timeout_s + 60)
+    return utcnow() - created_at > limit
+
+
 def view(session: Session, inc: Incident, settings: Settings) -> NarrativeOut:
     row = session.scalars(select(Narrative).where(Narrative.incident_id == inc.id)).first()
     if row is None:
@@ -153,13 +162,18 @@ def view(session: Session, inc: Incident, settings: Settings) -> NarrativeOut:
         if inv is not None:
             entities = pack_for(inc, inv, settings).mapping
     shown: dict[str, Any] | None = row.output if row.status == "validated" else None
+    status, reasons = row.status, list(row.reasons or [])
+    if status == "pending" and _is_stale(row.created_at):
+        # the background task died with the API process (restart) or the provider hung: do not
+        # leave the UI waiting forever; the analyst can request a new generation
+        status, reasons = "unavailable", ["generation did not finish (API restarted or timed out)"]
     return NarrativeOut(
-        status=row.status,
+        status=status,
         label=LABEL,
         provider=row.provider,
         model=row.model,
         prompt_hash=row.prompt_hash,
-        reasons=list(row.reasons or []),
+        reasons=reasons,
         output=shown,
         entities=entities,
         created_at=row.created_at,
@@ -167,7 +181,7 @@ def view(session: Session, inc: Incident, settings: Settings) -> NarrativeOut:
 
 
 @router.get("/incidents/{incident_id}/narrative", response_model=NarrativeOut)
-def get_narrative(incident_id: int, session: SessionDep, settings: SettingsDep) -> NarrativeOut:
+def get_narrative(incident_id: RowId, session: SessionDep, settings: SettingsDep) -> NarrativeOut:
     inc = session.get(Incident, incident_id)
     if inc is None:
         raise ApiError(404, "NOT_FOUND", "No such incident.")

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query, Response
 from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 
-from app.api.deps import AuthDep, SessionDep, SettingsDep
+from app.api.deps import INT32_MAX, AuthDep, RowId, SessionDep, SettingsDep
 from app.api.errors import ApiError
 from app.api.narratives import validated_narrative_block
 from app.api.schemas import (
@@ -52,18 +52,18 @@ def _finding(session: SessionDep, finding_id: int) -> Finding:
 
 
 @router.get("/incidents/{incident_id}", response_model=IncidentDetailOut)
-def get_incident(incident_id: int, session: SessionDep) -> IncidentDetailOut:
+def get_incident(incident_id: RowId, session: SessionDep) -> IncidentDetailOut:
     inc = _incident(session, incident_id)
     return incident_detail(session, inc, links_for(session, inc.investigation_id))
 
 
 @router.get("/incidents/{incident_id}/evidence", response_model=EvidencePage)
 def get_evidence(
-    incident_id: int,
+    incident_id: RowId,
     session: SessionDep,
-    finding_id: int | None = None,
+    finding_id: Annotated[int | None, Query(ge=1, le=INT32_MAX)] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
+    offset: Annotated[int, Query(ge=0, le=INT32_MAX)] = 0,
 ) -> EvidencePage:
     _incident(session, incident_id)
     query = select(EvidenceRecord).where(EvidenceRecord.incident_id == incident_id)
@@ -78,7 +78,7 @@ def get_evidence(
 
 @router.get("/incidents/{incident_id}/report")
 def get_report(
-    incident_id: int,
+    incident_id: RowId,
     session: SessionDep,
     settings: SettingsDep,
     format: Literal["md", "html"] = "md",
@@ -126,7 +126,7 @@ def get_report(
 
 
 @router.post("/findings/{finding_id}/slice", status_code=202, response_model=SliceAccepted)
-def create_slice(finding_id: int, session: SessionDep) -> SliceAccepted:
+def create_slice(finding_id: RowId, session: SessionDep) -> SliceAccepted:
     finding = _finding(session, finding_id)
     inv = session.get(Investigation, finding.investigation_id)
     if inv is None or inv.status != "completed":
@@ -156,7 +156,7 @@ def _slice(session: SessionDep, slice_id: int) -> SliceRow:
 
 
 @router.get("/slices/{slice_id}", response_model=SliceOut)
-def get_slice(slice_id: int, session: SessionDep) -> SliceOut:
+def get_slice(slice_id: RowId, session: SessionDep) -> SliceOut:
     row = _slice(session, slice_id)
     return SliceOut(
         id=row.id,
@@ -170,7 +170,7 @@ def get_slice(slice_id: int, session: SessionDep) -> SliceOut:
 
 
 @router.get("/slices/{slice_id}/download")
-def download_slice(slice_id: int, session: SessionDep, settings: SettingsDep) -> FileResponse:
+def download_slice(slice_id: RowId, session: SessionDep, settings: SettingsDep) -> FileResponse:
     row = _slice(session, slice_id)
     finding = session.get(Finding, row.finding_id)
     if row.status != "done" or row.filename is None or finding is None:
@@ -187,7 +187,7 @@ def download_slice(slice_id: int, session: SessionDep, settings: SettingsDep) ->
 
 
 @router.post("/findings/{finding_id}/feedback", status_code=201, response_model=FeedbackOut)
-def add_feedback(finding_id: int, body: FeedbackIn, session: SessionDep) -> FeedbackOut:
+def add_feedback(finding_id: RowId, body: FeedbackIn, session: SessionDep) -> FeedbackOut:
     _finding(session, finding_id)
     row = Feedback(finding_id=finding_id, label=body.label, note=body.note)
     session.add(row)
