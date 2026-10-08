@@ -139,3 +139,15 @@ def test_no_generated_data_is_tracked() -> None:
         or "data/" in p.relative_to(REPO).as_posix()[:5]
     ]
     assert not bad, bad
+
+
+def test_the_worker_does_not_receive_the_whole_env_file() -> None:
+    """Release-audit finding: `env_file: .env` handed LLM_API_KEY and API_TOKEN to the container
+    that parses hostile captures. It now gets an explicit list."""
+    worker = compose()["services"]["worker"]
+    assert "env_file" not in worker
+    names = set(worker["environment"])
+    assert names >= {"POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_HOST"}
+    assert not [n for n in names if n.startswith("LLM_") or n in ("API_TOKEN", "CORS_ORIGINS")]
+    # the API is the only service that reads the full file
+    assert "env_file" in compose()["services"]["api"]

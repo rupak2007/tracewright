@@ -77,7 +77,7 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL -
 | Gate G1 (anomaly) / G2 (narrative) | **Not run**; defaults `off` / `none` | `eval/decisions/` |
 | 500 MB lab capture, end to end | 61 s mean (39 to 74 s), 3 runs | `eval/results/bench-v1/` |
 | 1M-packet synthetic capture | 126 s mean (97 to 166 s), 3 runs | `eval/results/bench-v1-synthetic/` |
-| Tests / coverage | 702 passed, 13 skipped; 98% of `app/` | `docs/EVALUATION.md` section 6 |
+| Tests / coverage | 722 passed, 13 skipped; 98% of `app/` | `docs/EVALUATION.md` section 6 |
 | Security | 9/9 live sandbox probes; SEC-01..12 mapped to tests | `docs/SECURITY.md` |
 
 ## Limitations

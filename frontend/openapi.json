@@ -1230,6 +1230,8 @@
             "name": "finding_id",
             "required": true,
             "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
               "title": "Finding Id",
               "type": "integer"
             }
@@ -1295,6 +1297,8 @@
             "name": "finding_id",
             "required": true,
             "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
               "title": "Finding Id",
               "type": "integer"
             }
@@ -1368,6 +1372,8 @@
             "name": "incident_id",
             "required": true,
             "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
               "title": "Incident Id",
               "type": "integer"
             }
@@ -1423,6 +1429,8 @@
             "name": "incident_id",
             "required": true,
             "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
               "title": "Incident Id",
               "type": "integer"
             }
@@ -1434,6 +1442,8 @@
             "schema": {
               "anyOf": [
                 {
+                  "maximum": 2147483647,
+                  "minimum": 1,
                   "type": "integer"
                 },
                 {
@@ -1461,6 +1471,7 @@
             "required": false,
             "schema": {
               "default": 0,
+              "maximum": 2147483647,
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
@@ -1517,6 +1528,8 @@
             "name": "incident_id",
             "required": true,
             "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
               "title": "Incident Id",
               "type": "integer"
             }
@@ -1570,6 +1583,8 @@
             "name": "incident_id",
             "required": true,
             "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
               "title": "Incident Id",
               "type": "integer"
             }
@@ -1625,6 +1640,8 @@
             "name": "incident_id",
             "required": true,
             "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
               "title": "Incident Id",
               "type": "integer"
             }
@@ -2001,6 +2018,8 @@
             "name": "slice_id",
             "required": true,
             "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
               "title": "Slice Id",
               "type": "integer"
             }
@@ -2056,6 +2075,8 @@
             "name": "slice_id",
             "required": true,
             "schema": {
+              "maximum": 2147483647,
+              "minimum": 1,
               "title": "Slice Id",
               "type": "integer"
             }

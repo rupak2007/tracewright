@@ -96,13 +96,13 @@ by a wide margin on both shapes, and no stage was changed for speed. Caveats, no
 
 ## 6. Software correctness
 
-* Tests (2026-10-08, full suite incl. security and integration, local Python 3.12): 702 passed, 13 skipped
+* Tests (2026-10-09, full suite incl. security and integration, local Python 3.12): 722 passed, 13 skipped
   (skips: real-Zeek tests outside the worker image, opt-in PostgreSQL tests, the real ATT&CK bundle test).
   Line coverage of `app/`: 98%; `app/detect/` 99% to 100% per file, `app/correlate/` 100%,
   `app/explain/validator.py` 98% (targets: 90%).
 * Frontend: 23 vitest tests (including XSS fixtures), ESLint with raw-HTML APIs banned, TypeScript strict,
   a Playwright test that passed on real Chrome against the real compose stack (P7).
-* Inside the worker test image: the real-Zeek malformed-capture test passes (57 generated files: 6 stopped
+* Inside the worker test image (480 passed, 33 skipped): the real-Zeek malformed-capture test passes (57 generated files: 6 stopped
   at the gate, 17 completed, 34 failed cleanly with a documented code); the worker sandbox script passes 9
   of 9 probes against the live container (`docs/SECURITY.md`).
 * Real stack: `scripts/e2e_api.py` drove upload, analysis, incidents, slice (940 packets, real tcpdump and
@@ -137,3 +137,31 @@ by a wide margin on both shapes, and no stage was changed for speed. Caveats, no
 4. Run `--split test` once per milestone: detectors (`eval.run_detectors`), G1 (`eval.run_anomaly evaluate`),
    G2 (`eval.run_llm`, raters, `eval.score_llm --write-decision`). Replace the "Not run" decision records.
    Publish the numbers whatever they are.
+
+## 9. PRD §19 acceptance status (final release audit, 2026-10-09)
+
+| # | Criterion | Status | Evidence / gap |
+|---|---|---|---|
+| 1 | `docker compose up` starts the system; UI on 127.0.0.1 | **Met** | fresh clone, `docker compose up --build`, upload through the UI port, full flow (`scripts/e2e_api.py`) |
+| 2 | Demo PCAP gives the multi-stage incident (scan, brute force, beacon, exfil) | **Not met** | no attack capture exists. Linked incidents are exercised only on a synthetic Zeek-format storyline (`tests/integration/test_p4_pipeline.py`) |
+| 3 | Every finding shows metrics, thresholds, confidence, benign causes and exports a slice that opens in Wireshark | **Partly** | content and slice contents tested (real tcpdump/editcap/capinfos); opening in Wireshark by hand not done |
+| 4 | Invalid, oversized and compressed files rejected with clear messages | **Met** | unit tests and live checks; the audit fixed the band above Nginx's 520 MB limit, which answered with an HTML page |
+| 5 | Malformed-PCAP corpus processed without crashing the API | **Met** | 57-file corpus (gate, upload endpoint, real Zeek); the audit fixed three malformed-input 500s |
+| 6 | `LLM_PROVIDER=none` works; with a provider, validated narrative or template with the reason | **Met with scripted providers only** | no real model was run |
+| 7 | Prompt-injection capture produces no injected text in prompts or outputs | **Partly** | injection fixture is synthetic Zeek-format evidence through the real pipeline stages, pack and validator; no recorded hostile capture |
+| 8 | Harness regenerates all reported metrics from the committed manifest and labels; G1/G2 decided with numbers | **Not met** | dev metrics reproduce exactly; G1 and G2 have no numbers (not run) |
+| 9 | Detector, correlation and validator tests pass with coverage of 90% or more; integration tests pass on fixtures | **Met** | 99% to 100% detect and correlate, 98% validator |
+| 10 | Run manifest and report export for every completed investigation | **Met** | `manifest.json` per run; since the audit it records the anomaly scorer and, when built with `GIT_COMMIT`, the commit |
+
+## 10. Findings of the final release audit
+
+Fixed (each with a regression test): (1) the frozen corpus failed verification on any fresh checkout
+because recorded hashes were of CRLF working copies (`eval/REVISIONS.md` #9); (2) a non-ASCII bearer token,
+a malformed multipart body and out-of-range integer ids or offsets returned 500; (3) a narrative left
+`pending` by an API restart blocked the UI forever; (4) `frontend/openapi.json` was stale after API changes;
+(5) the run manifest never recorded the git commit and did not record the anomaly scorer (FR-46);
+(6) the worker container received the whole `.env` (LLM key, API token); (7) an upload above Nginx's
+520 MB limit was answered with an HTML page instead of the API's JSON error.
+Not fixed, documented: the P5 "swamping ablation" was never run (G1 not run); the `db` service keeps default
+capabilities (Postgres needs several); CI has still never run on GitHub (its steps were reproduced in a fresh
+clone); a delete racing a just-claimed queued job is possible but unlikely and untested.

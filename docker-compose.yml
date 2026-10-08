@@ -47,7 +47,17 @@ services:
       - artifacts:/data/artifacts
       - ./config:/config:ro
       - ./knowledge:/knowledge:ro
-    env_file: .env
+    # Least privilege: the worker parses hostile captures, so it gets only what it needs (the
+    # database login and a few switches), never LLM_API_KEY, API_TOKEN or other .env entries.
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-prod}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ANOMALY_SCORER: ${ANOMALY_SCORER:-off}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     depends_on:
       db:
         condition: service_healthy
