@@ -363,6 +363,8 @@
 
 **Acceptance criteria:** every item in PRD §19 passes.
 
+**Status (2026-10-08):** documentation delivered, evaluation NOT complete. `docs/EVALUATION.md` (every number from a result file, negative results and threats to validity), `README.md`, `docs/DEMO.md`, `docs/VIVA.md`, `docs/SECURITY.md`, `scripts/make_demo.py`. Not done, because they need data this repository cannot produce: the frozen `test`-split run (refused until 27/27 corpus requirements are met; 10/27 are), `eval/results/final/` (nothing to put there beyond the dev and performance results already filed), the multi-stage `demo/demo.pcap` (no attack traffic is generated), and PRD §19 criteria 2 and 8 in full (3 and 7 only partly: the injection fixture is synthetic Zeek-format evidence, not a recorded hostile capture). No `v1.0` tag: the release candidate is tagged `v1.0-rc1` and says so.
+
 ---
 
 ## S1 — Grounded incident Q&A (stretch, after MVP)
