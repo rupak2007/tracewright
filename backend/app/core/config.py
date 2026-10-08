@@ -55,6 +55,24 @@ class Settings(PipelineSettings):
         )
 
 
+class LlmSettings(BaseSettings):
+    """Optional narrative provider (SEC-05): `none` by default; external providers need explicit
+    configuration and a key from the environment. Read by the API only, never by the worker."""
+
+    model_config = SettingsConfigDict(extra="ignore", case_sensitive=False)
+
+    llm_provider: Literal["none", "ollama", "openai_compatible", "anthropic"] = "none"
+    llm_model: str = ""
+    llm_base_url: str = ""  # ollama: http://ollama:11434; openai_compatible: .../v1
+    llm_api_key: SecretStr | None = None
+    llm_timeout_s: float = Field(default=120.0, gt=0)
+
+
+@lru_cache
+def get_llm_settings() -> LlmSettings:
+    return LlmSettings()
+
+
 class ApiSettings(BaseSettings):
     """HTTP edge settings (SEC-07): optional bearer token; CORS limited to the UI origins."""
 
