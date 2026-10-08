@@ -59,6 +59,16 @@ except OSError:
     sys.exit(0)
 sys.exit(1)'
 
+probe "PID and memory limits are applied (cgroup pids.max / memory.max are not unlimited)"   'import sys
+def limit(name):
+    try:
+        return open("/sys/fs/cgroup/" + name).read().strip()
+    except OSError:
+        return "max"
+sys.exit(0 if limit("pids.max") != "max" and limit("memory.max") != "max" else 1)'
+
+probe "the Docker socket is not mounted in the worker"   'import os,sys; sys.exit(1 if os.path.exists("/var/run/docker.sock") else 0)'
+
 # Positive control: the sandbox must not block what the worker legitimately needs.
 probe "positive control: can write to the artifacts volume" \
   'import os,sys,tempfile
