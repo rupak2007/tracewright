@@ -201,6 +201,7 @@ def analyze_capture(pcap: Path, out_dir: Path, settings: PipelineSettings) -> An
                 capture_sha256=run.status.sha256 or "",
                 attack_version=acfg.pins.attack_version,
                 attack_bundle_sha256=acfg.pins.bundle_sha256,
+                anomaly_scorer=settings.anomaly_scorer,
                 detector_versions=report.detector_versions,
                 config_dir=config_dir,
                 counts={

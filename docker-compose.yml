@@ -31,6 +31,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.worker
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-}  # recorded in each run manifest; empty when not set
     networks: [internal] # no egress
     user: "10001:10001"
     read_only: true

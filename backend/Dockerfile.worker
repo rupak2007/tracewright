@@ -55,6 +55,9 @@ CMD ["pytest", "-p", "no:cacheprovider", "-m", "requires_zeek"]
 FROM base AS worker
 ARG UID=10001
 COPY app ./app
+# recorded in every run manifest (FR-46); `GIT_COMMIT=$(git rev-parse HEAD) docker compose build`
+ARG GIT_COMMIT=
+ENV GIT_COMMIT=${GIT_COMMIT}
 
 USER ${UID}:${UID}
 

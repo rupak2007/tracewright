@@ -29,6 +29,7 @@ class RunManifest(BaseModel):
     capture_sha256: str
     attack_version: str
     attack_bundle_sha256: str
+    anomaly_scorer: str
     detector_versions: dict[str, str]
     config_sha256: dict[str, str]
     counts: dict[str, int]
@@ -51,6 +52,7 @@ def build_manifest(
     capture_sha256: str,
     attack_version: str,
     attack_bundle_sha256: str,
+    anomaly_scorer: str,
     detector_versions: dict[str, str],
     config_dir: Path,
     counts: dict[str, int],
@@ -62,6 +64,7 @@ def build_manifest(
         capture_sha256=capture_sha256,
         attack_version=attack_version,
         attack_bundle_sha256=attack_bundle_sha256,
+        anomaly_scorer=anomaly_scorer,
         detector_versions=detector_versions,
         config_sha256=config_hashes(config_dir),
         counts=counts,

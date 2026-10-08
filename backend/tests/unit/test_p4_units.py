@@ -2,6 +2,7 @@
 
 import shutil
 from pathlib import Path
+from typing import Any
 
 import pytest
 from jinja2 import UndefinedError
@@ -106,6 +107,7 @@ def test_manifest_is_deterministic_and_records_versions_hashes_and_counts() -> N
         "capture_sha256": "ab" * 32,
         "attack_version": ACFG.pins.attack_version,
         "attack_bundle_sha256": ACFG.pins.bundle_sha256,
+        "anomaly_scorer": "off",
         "detector_versions": {"DET-SCAN": "1.0.0"},
         "config_dir": REPO / "config",
         "counts": {"findings": 1},
@@ -114,6 +116,27 @@ def test_manifest_is_deterministic_and_records_versions_hashes_and_counts() -> N
     assert a.model_dump_json() == b.model_dump_json()
     assert set(a.config_sha256) >= {"detectors.yaml", "correlation.yaml", "attack_mapping.yaml"}
     assert all(len(h) == 64 for h in a.config_sha256.values()) and a.attack_version == "19.2"
+
+
+def test_manifest_records_the_git_commit_and_anomaly_scorer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    kwargs: dict[str, Any] = {
+        "version": "1",
+        "zeek_version": "9.0.0",
+        "capture_sha256": "ab" * 32,
+        "attack_version": ACFG.pins.attack_version,
+        "attack_bundle_sha256": ACFG.pins.bundle_sha256,
+        "anomaly_scorer": "robust_z",
+        "detector_versions": {},
+        "config_dir": REPO / "config",
+        "counts": {},
+    }
+    monkeypatch.delenv("GIT_COMMIT", raising=False)
+    assert build_manifest(**kwargs).git_commit is None  # unknown is recorded as unknown
+    monkeypatch.setenv("GIT_COMMIT", "a991de0")
+    manifest = build_manifest(**kwargs)
+    assert manifest.git_commit == "a991de0" and manifest.anomaly_scorer == "robust_z"
 
 
 def test_analysis_config_loads_everything_and_rejects_a_stale_card_set(tmp_path: Path) -> None:
