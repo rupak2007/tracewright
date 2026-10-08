@@ -106,6 +106,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/incidents/{incident_id}/narrative": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Narrative */
+        get: operations["get_narrative_api_v1_incidents__incident_id__narrative_get"];
+        put?: never;
+        /** Start Narrative */
+        post: operations["start_narrative_api_v1_incidents__incident_id__narrative_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/incidents/{incident_id}/report": {
         parameters: {
             query?: never;
@@ -446,6 +464,22 @@ export interface components {
             /** Types */
             types: string[];
         };
+        /** Inference */
+        Inference: {
+            /** Alternative Explanations */
+            alternative_explanations: string[];
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "low" | "medium" | "high";
+            /** Knowledge Ids */
+            knowledge_ids?: string[];
+            /** Statement */
+            statement: string;
+            /** Supporting Ids */
+            supporting_ids: string[];
+        };
         /** InvestigationDetail */
         InvestigationDetail: {
             /**
@@ -527,6 +561,48 @@ export interface components {
             /** Type */
             type: string;
         };
+        /**
+         * NarrativeOut
+         * @description Optional machine-generated narrative. `output` is present ONLY when it passed validation;
+         *     otherwise the template summary of the incident is what to show.
+         */
+        NarrativeOut: {
+            /** Created At */
+            created_at: string | null;
+            /** Entities */
+            entities: {
+                [key: string]: string;
+            };
+            /** Label */
+            label: string;
+            /** Model */
+            model: string;
+            output: components["schemas"]["NarrativeOutput"] | null;
+            /** Prompt Hash */
+            prompt_hash: string;
+            /** Provider */
+            provider: string;
+            /** Reasons */
+            reasons: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "not_requested" | "pending" | "validated" | "rejected" | "unavailable";
+        };
+        /** NarrativeOutput */
+        NarrativeOutput: {
+            /** Inferences */
+            inferences: components["schemas"]["Inference"][];
+            /** Observed */
+            observed: components["schemas"]["Observed"][];
+            /** Open Questions */
+            open_questions: string[];
+            /** Recommendations */
+            recommendations: components["schemas"]["Recommendation"][];
+            /** Summary */
+            summary: string;
+        };
         /** NetworkOut */
         NetworkOut: {
             /** Allowlist */
@@ -539,6 +615,20 @@ export interface components {
             known_hosts: {
                 [key: string]: string[];
             };
+        };
+        /** Observed */
+        Observed: {
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /** Statement */
+            statement: string;
+        };
+        /** Recommendation */
+        Recommendation: {
+            /** Action */
+            action: string;
+            /** Rationale Ids */
+            rationale_ids: string[];
         };
         /** SliceAccepted */
         SliceAccepted: {
@@ -781,6 +871,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvidencePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_narrative_api_v1_incidents__incident_id__narrative_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                incident_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_narrative_api_v1_incidents__incident_id__narrative_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                incident_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeOut"];
                 };
             };
             /** @description Validation Error */

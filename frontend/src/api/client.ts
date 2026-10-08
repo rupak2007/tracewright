@@ -10,6 +10,7 @@ export type EvidencePage = Schemas["EvidencePage"];
 export type EvidenceOut = Schemas["EvidenceOut"];
 export type AnomaliesOut = Schemas["AnomaliesOut"];
 export type SliceOut = Schemas["SliceOut"];
+export type NarrativeOut = Schemas["NarrativeOut"];
 export type FeedbackLabel = Schemas["FeedbackIn"]["label"];
 
 const BASE = "/api/v1";
@@ -104,4 +105,5 @@ export const queryKeys = {
   incident: (id: number) => ["incident", id] as const,
   evidence: (id: number, finding?: number) => ["evidence", id, finding ?? "all"] as const,
   slice: (id: number) => ["slice", id] as const,
+  narrative: (id: number) => ["narrative", id] as const,
 };

@@ -8,6 +8,7 @@ import { TechniqueCards } from "../components/Cards";
 import { EvidenceTable } from "../components/EvidenceTable";
 import { FeedbackForm, SliceControl } from "../components/FindingActions";
 import { FindingCard } from "../components/FindingCard";
+import { NarrativePanel } from "../components/Narrative";
 import { SummaryPanel } from "../components/SummaryPanel";
 import { Timeline, lanesFor } from "../components/Timeline";
 import { formatDuration, formatTime } from "../lib/format";
@@ -112,6 +113,7 @@ export function IncidentPage() {
         </button>
       </p>
       <SummaryPanel summary={inc.summary} />
+      <NarrativePanel incidentId={inc.id} findings={inc.findings} />
       {inc.links.length > 0 ? (
         <section aria-labelledby="links-h">
           <h2 id="links-h">Linked incidents</h2>

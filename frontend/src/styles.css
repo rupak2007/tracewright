@@ -43,3 +43,5 @@ input[type=text], input:not([type]), input[type=password], select { font: inheri
 .token label { display: block; font-size: .8rem; color: var(--muted); } .warnings li { margin: .25rem 0; }
 footer { margin: 2rem auto; }
 @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+
+.entity { font-family: ui-monospace, monospace; background: var(--card); border-bottom: 1px dotted currentColor; }
