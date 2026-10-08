@@ -30,6 +30,21 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def text_sha256(path: Path) -> str:
+    """SHA-256 of a text record (`run.json`, `labels.jsonl`) with its line endings canonicalised
+    to CRLF, or '' when the file does not exist.
+
+    The first runs were hashed from Windows checkouts, so CRLF is the form recorded in the committed
+    split manifest and verification records. Git stores these files with LF (`.gitattributes`), so
+    hashing raw bytes made a Linux checkout disagree with every recorded hash. Hashing the canonical
+    form gives the same value on any checkout and keeps every recorded hash valid without editing
+    the frozen manifest. Binary files (captures) keep using `sha256_file`."""
+    if not path.exists():
+        return ""
+    data = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+    return hashlib.sha256(data).hexdigest()
+
+
 @dataclass(frozen=True)
 class Verification:
     run_id: str
@@ -76,8 +91,8 @@ def eligibility(run_dir: Path, meta: RunMeta) -> tuple[bool, str]:
         return False, f"verification failed ({len(record.problems)} problem(s))"
     if record.capture_sha256 != meta.capture_sha256:
         return False, "declared capture hash changed after verification"
-    if record.run_json_sha256 != sha256_file(run_dir / "run.json"):
+    if record.run_json_sha256 != text_sha256(run_dir / "run.json"):
         return False, "run.json changed after verification"
-    if record.labels_sha256 != sha256_file(run_dir / "labels.jsonl"):
+    if record.labels_sha256 != text_sha256(run_dir / "labels.jsonl"):
         return False, "labels.jsonl changed after verification"
     return True, "verified"

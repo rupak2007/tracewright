@@ -25,7 +25,7 @@ from lab.checks import check_run
 from lab.labeler import read_labels
 from lab.runmeta import load_run
 from lab.submission import check_run_flags
-from lab.verification import FILE_NAME, Verification, now_stamp, sha256_file
+from lab.verification import FILE_NAME, Verification, now_stamp, text_sha256
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -57,8 +57,8 @@ def verify_run(run_dir: Path, analysis_dir: Path, tolerance_s: float = 5.0) -> V
         passed=not problems,
         problems=tuple(problems),
         capture_sha256=meta.capture_sha256,
-        run_json_sha256=sha256_file(run_dir / "run.json"),
-        labels_sha256=sha256_file(labels_path),
+        run_json_sha256=text_sha256(run_dir / "run.json"),
+        labels_sha256=text_sha256(labels_path),
         analysis_zeek_version=str(profile.get("zeek_version", "")),
         analysis_connections=len(conn),
         verified_at=now_stamp(),

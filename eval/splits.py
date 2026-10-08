@@ -28,7 +28,7 @@ import yaml
 from lab.labeler import read_labels
 from lab.runmeta import RunMeta, load_run
 from lab.schema import ATTACK_CLASSES, HARD_NEGATIVE_CLASSES, HOLDOUT_CLASSES, Episode
-from lab.verification import eligibility, sha256_file
+from lab.verification import eligibility, sha256_file, text_sha256
 
 REPO = Path(__file__).resolve().parents[1]
 RUNS_DIR = REPO / "lab" / "runs"
@@ -55,7 +55,8 @@ class LoadedRun:
 
 
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """Line-ending independent hash of a run record (see `lab.verification.text_sha256`)."""
+    return text_sha256(path)
 
 
 def load_runs(runs_dir: Path = RUNS_DIR) -> dict[str, LoadedRun]:
