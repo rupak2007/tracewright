@@ -6,8 +6,9 @@ labelled with the evidence ID of the aggregate item it comes from, and the summa
 evidence IDs, so a reader can trace each number. The HTML renderer (P6) reuses the same model.
 """
 
+import json
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 from app.profile.profile import CaptureProfile
 from app.report.model import AnalysisOutput, IncidentDetail
@@ -142,8 +143,46 @@ def _escape_summary(sentence: str) -> str:
     return "".join(p if p.startswith("[E-") else _SPECIAL.sub(r"\\\1", p) for p in parts)
 
 
+LIMITATIONS = (
+    "Single capture: normal means normal within this capture; quiet hosts have weak baselines.",
+    "Encrypted traffic: only metadata is analysed; encrypted brute force is inferred.",
+    "Capture position matters: a capture from one segment cannot show traffic it did not see.",
+    "Beacon detectability depends on interval versus capture duration; heavy jitter evades it.",
+    "Low-and-slow behaviour can stay under thresholds by design.",
+    "Anomaly is not malicious: anomaly findings are leads, not detections.",
+    "ATT&CK mappings are consistent with, never attribution.",
+)
+Feedback = Mapping[str, Sequence[tuple[str, str]]]  # finding local id -> [(label, note)]
+
+
+def _manifest_section(manifest: Mapping[str, object] | None) -> list[str]:
+    if not manifest:
+        return []
+    lines = ["## Run manifest", "", "| Field | Value |", "|---|---|"]
+    for key, value in sorted(manifest.items()):
+        lines.append(f"| {md_escape(key)} | {md_escape(json.dumps(value, sort_keys=True))} |")
+    return [*lines, ""]
+
+
+def _feedback_section(feedback: Feedback | None) -> list[str]:
+    if not feedback:
+        return []
+    lines = ["## Analyst feedback", ""]
+    for fid, entries in sorted(feedback.items()):
+        for label, note in entries:
+            lines.append(
+                f"- {md_escape(fid)}: {md_escape(label)}"
+                + (f" ({md_escape(note)})" if note else "")
+            )
+    return [*lines, ""]
+
+
 def render_markdown(
-    out: AnalysisOutput, profile: CaptureProfile | None = None, title: str = "Tracewright report"
+    out: AnalysisOutput,
+    profile: CaptureProfile | None = None,
+    title: str = "Tracewright report",
+    manifest: Mapping[str, object] | None = None,
+    feedback: Feedback | None = None,
 ) -> str:
     lines = [
         f"# {md_escape(title)}",
@@ -170,6 +209,9 @@ def render_markdown(
     lines.append("")
     for detail in out.incidents:
         lines += _incident_section(detail)
+    lines += _feedback_section(feedback)
+    lines += _manifest_section(manifest)
+    lines += ["## Limitations", "", *[f"- {md_escape(item)}" for item in LIMITATIONS], ""]
     return "\n".join(lines).rstrip("\n") + "\n"
 
 

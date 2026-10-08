@@ -48,6 +48,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      api:
+        condition: service_healthy  # the API container applies the migrations first
     restart: on-failure
 
   api:
@@ -63,6 +65,9 @@ services:
     volumes:
       - uploads:/data/uploads
       - artifacts:/data/artifacts:ro
+      - ./config:/config:ro
+    environment:
+      CONFIG_DIR: /config
     env_file: .env
     depends_on:
       db:

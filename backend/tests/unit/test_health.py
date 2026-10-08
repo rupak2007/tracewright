@@ -35,7 +35,7 @@ def client_db_down(env: None) -> Iterator[TestClient]:
 def test_health_ok(client_ok: TestClient) -> None:
     response = client_ok.get("/api/v1/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "db": "ok"}
+    assert response.json() == {"status": "ok", "db": "ok", "worker": "unknown"}
 
 
 def test_health_503_when_db_unreachable(client_db_down: TestClient) -> None:

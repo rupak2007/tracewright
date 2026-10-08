@@ -36,6 +36,63 @@ def sanitise_original_name(name: str | None) -> str:
     return cleaned[:_MAX_NAME_CHARS]
 
 
+class UploadSink:
+    """Incremental upload target: validates while bytes arrive and leaves nothing behind on failure.
+
+    `write` raises IngestError as soon as the file is known to be bad (too large, compressed, wrong
+    magic); `abort` removes the partial file; `finish` renames it to its UUID name and returns it.
+    """
+
+    def __init__(
+        self,
+        uploads_dir: Path,
+        max_bytes: int,
+        min_free_bytes: int = 0,
+        original_name: str | None = None,
+    ) -> None:
+        if shutil.disk_usage(uploads_dir).free < max(min_free_bytes, 0):
+            raise IngestError("INSUFFICIENT_DISK", "Not enough free disk space to accept uploads.")
+        self._dir = uploads_dir
+        self._capture_id = uuid.uuid4()
+        self._partial = uploads_dir / f"{self._capture_id}.part"
+        self._validator = CaptureValidator(max_bytes)
+        self._name = sanitise_original_name(original_name)
+        self._out: BinaryIO | None = self._partial.open("xb")
+
+    def _open_file(self) -> BinaryIO:
+        if self._out is None:
+            raise RuntimeError("the upload is already finished or aborted")
+        return self._out
+
+    def write(self, chunk: bytes) -> None:
+        out = self._open_file()
+        try:
+            self._validator.feed(chunk)
+            out.write(chunk)
+        except BaseException:
+            self.abort()
+            raise
+
+    def abort(self) -> None:
+        if self._out is not None:
+            self._out.close()
+            self._out = None
+        self._partial.unlink(missing_ok=True)
+
+    def finish(self) -> StoredCapture:
+        out = self._open_file()
+        try:
+            info = self._validator.finish()
+            out.close()
+            self._out = None
+            final = self._dir / f"{self._capture_id}.{info.format.value}"
+            os.replace(self._partial, final)
+        except BaseException:
+            self.abort()
+            raise
+        return StoredCapture(self._capture_id, final, info, self._name)
+
+
 def store_upload(
     source: BinaryIO,
     uploads_dir: Path,
@@ -47,20 +104,7 @@ def store_upload(
 
     On any failure the partial file is removed and nothing is left behind.
     """
-    if shutil.disk_usage(uploads_dir).free < max(min_free_bytes, 0):
-        raise IngestError("INSUFFICIENT_DISK", "Not enough free disk space to accept uploads.")
-    capture_id = uuid.uuid4()
-    partial = uploads_dir / f"{capture_id}.part"
-    validator = CaptureValidator(max_bytes)
-    try:
-        with partial.open("xb") as out:
-            while chunk := source.read(_CHUNK):
-                validator.feed(chunk)
-                out.write(chunk)
-        info = validator.finish()
-        final = uploads_dir / f"{capture_id}.{info.format.value}"
-        os.replace(partial, final)
-    except BaseException:
-        partial.unlink(missing_ok=True)
-        raise
-    return StoredCapture(capture_id, final, info, sanitise_original_name(original_name))
+    sink = UploadSink(uploads_dir, max_bytes, min_free_bytes, original_name)
+    while chunk := source.read(_CHUNK):
+        sink.write(chunk)
+    return sink.finish()

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from app.core.config import get_pipeline_settings, get_settings
+from app.core.config import get_api_settings, get_pipeline_settings, get_settings
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -22,6 +22,7 @@ def _knowledge_dir(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture(autouse=True)
 def _clean_settings_cache() -> None:
     get_settings.cache_clear()
+    get_api_settings.cache_clear()
     get_pipeline_settings.cache_clear()
 
 

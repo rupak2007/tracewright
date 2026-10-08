@@ -225,6 +225,8 @@
 
 **Objective:** a stable HTTP API over the finished pipeline.
 
+**Status (2026-10-08):** implemented and verified: schema + Alembic migration (checked on PostgreSQL 16), SKIP LOCKED queue with lease/heartbeat and requeue-once, streaming upload, all architecture §16 endpoints except the narrative ones (P8), packet slices (real tcpdump/editcap), feedback, Markdown/HTML reports with escaping, bearer token, CORS, OpenAPI. `scripts/e2e_api.py` drove the real compose stack end to end (upload, analysis, incidents, slice, download, feedback, reports, delete) on lab capture b02. The generated `frontend/src/api/schema.ts` comes with P7. Not verified: opening a slice in Wireshark by hand.
+
 **Tasks**
 - Streaming upload endpoint with validation; investigation CRUD; job table with `SKIP LOCKED` lease loop in `worker/main.py`; heartbeat.
 - Read endpoints (architecture §16); pagination for evidence.

@@ -1,23 +1,19 @@
-"""GET /api/v1/health: database connectivity. Worker heartbeat arrives with the jobs table."""
+"""GET /api/v1/health: database connectivity and the worker heartbeat (architecture §22)."""
 
 import logging
-from typing import Literal
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from sqlalchemy import Engine
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
+from app.api.schemas import HealthResponse
+from app.db import jobs
 from app.db.session import check_connection
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-
-class HealthResponse(BaseModel):
-    status: Literal["ok"]
-    db: Literal["ok"]
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -31,4 +27,9 @@ def health(request: Request) -> HealthResponse | JSONResponse:
             status_code=503,
             content={"error": {"code": "DB_UNAVAILABLE", "message": "Database is unavailable."}},
         )
-    return HealthResponse(status="ok", db="ok")
+    try:
+        with Session(engine) as session:
+            alive = jobs.worker_alive(session)
+    except SQLAlchemyError:  # schema not migrated yet: the database is up, the worker unknown
+        alive = False
+    return HealthResponse(status="ok", db="ok", worker="alive" if alive else "unknown")

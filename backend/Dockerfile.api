@@ -26,7 +26,10 @@ RUN pip install --no-cache-dir uv==${UV_VERSION} \
  && pip uninstall -y uv
 
 COPY app ./app
+COPY alembic.ini ./
+COPY migrations ./migrations
 
 USER ${UID}:${UID}
 EXPOSE 8000
-CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Migrate the schema, then serve (the worker waits for this container to be healthy).
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.api.main:app --host 0.0.0.0 --port 8000"]

@@ -28,6 +28,8 @@ class PipelineSettings(BaseSettings):
     zeek_expected_version: str | None = None
     zeek_timeout_s: int = Field(default=900, gt=0)
     capinfos_bin: str = "capinfos"
+    tcpdump_bin: str = "tcpdump"
+    editcap_bin: str = "editcap"
     tool_timeout_s: int = Field(default=60, gt=0)
 
 
@@ -51,6 +53,24 @@ class Settings(PipelineSettings):
             port=self.postgres_port,
             database=self.postgres_db,
         )
+
+
+class ApiSettings(BaseSettings):
+    """HTTP edge settings (SEC-07): optional bearer token; CORS limited to the UI origins."""
+
+    model_config = SettingsConfigDict(extra="ignore", case_sensitive=False)
+
+    api_token: SecretStr | None = None
+    cors_origins: list[str] = [
+        "http://127.0.0.1:8080",
+        "http://localhost:8080",
+        "http://localhost:5173",
+    ]
+
+
+@lru_cache
+def get_api_settings() -> ApiSettings:
+    return ApiSettings()
 
 
 @lru_cache

@@ -495,6 +495,16 @@ Base path `/api/v1`. JSON; errors as `{"error": {"code", "message"}}`.
 
 Auth: if `API_TOKEN` is set, `Authorization: Bearer` required on all routes except `/health`.
 
+### 16.1 Implementation notes (P6)
+
+Code: `app/db/{models,jobs,persist}.py` (+ Alembic: `backend/alembic.ini`, `migrations/versions/0001_initial_schema.py`, checked against the models on PostgreSQL), `app/api/*`, `app/slice/{builder,runner}.py`, `app/worker/{main,jobs_runner}.py`, `app/report/html.py`. The API container applies `alembic upgrade head` before serving; the worker starts after it is healthy.
+
+- **Upload** is parsed as a stream (`api/upload.py`): the file part goes straight into an `UploadSink` (size cap, compression and magic checks, SHA-256) and the first problem aborts the request and removes the partial file; Starlette's form parser is not used because it would spool the body first. Error statuses: 413 too large, 415 wrong type/compressed, 400 empty/no file.
+- **Queue**: `SELECT ... FOR UPDATE SKIP LOCKED`; a claimed job holds a 30 min lease extended by a 15 s heartbeat thread; an expired lease is requeued once and failed the second time (`attempts`). A failed analysis leaves no incidents behind (NFR-03). The `worker_heartbeat` table backs `GET /health` (`worker: alive|unknown`).
+- **Persistence**: analysis artifacts are written by the pipeline and then loaded into the tables of §15; incidents also keep the full `IncidentDetail` JSON so reports render identically from the database. The API reads only the database (plus the slice files). Findings, incidents and evidence are addressed by integer IDs in URLs (local `F-n`/`I-n`/`E-n` stay in the payload). `DELETE` removes rows, the upload and the artifacts tree.
+- **Slices**: BPF from the finding's evidence flows (<= 50 flows individually, else host pairs, > 200 pairs refused as too broad), `tcpdump -r -w` then `editcap -A/-B` (UTC, +-2 s padding), 100 MB cap, empty slices fail with `SLICE_EMPTY`. One slice per finding is reused unless it failed. Checked against real tcpdump/editcap/capinfos (`tests/integration/test_slice_real.py`, worker image).
+- **Deviations/choices**: `/investigations/{id}/anomalies` returns the stored top-50 scored windows plus promoted findings; reports embed the run manifest, analyst feedback and the PRD limitations; the narrative endpoints are added with P8; CORS allows only the configured UI origins (`CORS_ORIGINS`), bearer token via `API_TOKEN`.
+
 ## 17. Frontend architecture
 
 - React + TypeScript (strict) + Vite; React Router; TanStack Query for fetching/polling; Apache ECharts for the timeline swimlane (the only charting dependency).
