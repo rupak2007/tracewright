@@ -337,6 +337,8 @@
 - All SEC requirements have a test or a documented manual check.
 - NFR-01 met or the gap documented with profiling evidence.
 
+**Status (2026-10-08):** done, with caveats. Sandbox: `scripts/check_worker_sandbox.sh` 9/9 probes pass on the real worker. Malformed corpus: 57 generated files, none crashed or hung the gate, the upload endpoint (never 5xx) or real Zeek (17 completed, 34 failed cleanly, 6 stopped at the gate). Audits: `pip-audit` and `npm audit` clean (point in time); every image pinned by digest (frontend base images pinned in this phase); no image CVE scan. Retention is manual and documented; delete verified across every table and file. `docs/SECURITY.md` maps SEC-01..12 to tests or live checks. NFR-01 (`eval/results/bench-v1/`, `bench-v1-synthetic/`, 3 runs each, container limited to 3 GB / 4 CPUs on a 6-CPU, 4 GB Docker VM): 50, 200 and 500 MB real lab captures took 11.9, 54.2 and 61.2 s on average (500 MB: 39 to 74 s), and a synthetic 1M-packet, 71k-connection capture 126 s (97 to 166 s); all far under 10 min, no stage needed fixing. Caveats: timings are noisy on this host (bind-mount I/O), the reference machine has 16 GB, the lab captures hold few packets (500 MB = 71,853), and the 1M-packet capture is synthetic sizing data, not evaluation data.
+
 ---
 
 ## P10 — Final evaluation, demo, documentation (Weeks 13–14)

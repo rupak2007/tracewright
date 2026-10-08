@@ -37,3 +37,6 @@ uploads/
 Thumbs.db
 frontend/test-results/
 frontend/playwright-report/
+
+# Demo capture built by scripts/make_demo.py (captures are never committed)
+demo/
