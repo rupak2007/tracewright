@@ -15,11 +15,11 @@ sandbox and malformed-input checks).
 
 | Gate / target | Status | Record |
 |---|---|---|
-| Detector recall and precision (PRD §18) | **Not measured** | `eval/results/dev-benign-baseline-v1/detectors.json` states `attack_metrics: not measurable` |
+| Detector recall and precision (PRD §18) | **Not measured** | `eval/results/dev-benign-baseline-v2/detectors.json` states `attack_metrics: not measurable` |
 | `baseline-rules-v1` on `test` (M1) | **Not produced** | the harness refuses `--split test` (10/27 corpus requirements met) |
 | G1, anomaly scorer | **Not run**, default `ANOMALY_SCORER=off` | `eval/decisions/G1.md` |
 | G2, LLM narrative | **Not run**, default `LLM_PROVIDER=none` | `eval/decisions/G2.md` |
-| NFR-01, 500 MB in 10 min | **Met on the benchmark host, with caveats** (section 5) | `eval/results/bench-v1/`, `bench-v1-synthetic/` |
+| NFR-01, 500 MB in 10 min | **Met on the benchmark host, with caveats** (section 5) | `eval/results/bench-v2/`, `bench-v2-synthetic/` (and the earlier `bench-v1*`) |
 
 ## 2. Corpus
 
@@ -54,6 +54,20 @@ traffic: with at least 10 events the score fires at rate 1.0 for 10 to 60 s inte
 50% over a one-hour capture, 0.95 at a 300 s interval with 50% jitter, and 0.0 at a 900 s interval (about
 4 to 5 events in an hour, below the 10-event minimum). It shows where the detector cannot see, not how well
 it sees.
+
+**Update 2026-11-01** (`eval/results/dev-benign-baseline-v2/`, `dev` runs b02, b04, b05 and the new b08,
+3.00 benign hours, same untuned detectors; the `test` split was not touched):
+
+| Network context | Findings | Medium/high false positives | Per benign hour | By hard negative |
+|---|---|---|---|---|
+| With allowlists | 6 | 6 (all BEACON) | 2.00 | AUTOMATION_SSH 1, CDN_BROWSING 2, MONITORING_HEARTBEAT 2, PACKAGE_UPDATE 1 |
+| Without allowlists | 9 | 9 (all BEACON) | 3.00 | the above plus NTP 3 |
+
+The PRD target (at most 1.0 per hour) is still **not met**, and adding a fourth `dev` run made the figure
+worse, not better. The new AUTOMATION_SSH run (b08) produced one BEACON finding and **no BRUTE finding**, so the
+SSH-burst shape did not trigger DET-BRUTE at its default thresholds; that is one observation on one run and
+says nothing about brute-force recall. Nothing was tuned. The v1 numbers above remain the record for the
+three-run sample.
 
 ## 4. Anomaly triage (G1) and narrative (G2)
 
@@ -94,9 +108,15 @@ by a wide margin on both shapes, and no stage was changed for speed. Caveats, no
 * In the synthetic run `zeek_parse` (63 to 122 s) dominates, then `detect` (9 to 12 s) and `normalise`.
 * `bench.json` records Git commit `f914ee7` with `dirty: true`: the benchmark tooling was committed afterwards.
 
+**Update 2026-11-01** (`eval/results/bench-v2/`, `bench-v2-synthetic/`, same method, clean tree, host otherwise
+idle): 50 MB 11.0 s (10.5 to 11.7), 200 MB 12.6 s (11.8 to 13.4), 500 MB 24.2 s (20.4 to 30.3), synthetic
+1M-packet 50.2 s (44.5 to 59.7); all runs completed, largest process RSS 388 MB. These are 2 to 3 times faster
+than `bench-v1`, which was measured while other work was running on the same machine; the spread between the two
+sets is itself the honest uncertainty. Neither set changes the NFR-01 conclusion.
+
 ## 6. Software correctness
 
-* Tests (2026-10-09, full suite incl. security and integration, local Python 3.12): 730 passed, 13 skipped
+* Tests (2026-11-01, full suite incl. security and integration, local Python 3.12): 736 passed, 13 skipped
   (skips: real-Zeek tests outside the worker image, opt-in PostgreSQL tests, the real ATT&CK bundle test).
   Line coverage of `app/`: 98%; `app/detect/` 99% to 100% per file, `app/correlate/` 100%,
   `app/explain/validator.py` 98% (targets: 90%).

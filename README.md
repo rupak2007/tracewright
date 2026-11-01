@@ -72,12 +72,12 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL -
 
 | Item | Result | Source |
 |---|---|---|
-| Detector recall / precision | **Not measured** (no labelled attacks) | `eval/results/dev-benign-baseline-v1/` |
-| Benign false positives, dev, medium/high | 4 BEACON findings in 2.25 h = 1.78 per hour with allowlists (PRD target 1.0: **not met**) | same |
+| Detector recall / precision | **Not measured** (no labelled attacks) | `eval/results/dev-benign-baseline-v2/` |
+| Benign false positives, dev, medium/high | 6 BEACON findings in 3.00 h = 2.00 per hour with allowlists (PRD target 1.0: **not met**; 1.78 per hour on the earlier 3 dev runs, `dev-benign-baseline-v1`) | `dev-benign-baseline-v2` |
 | Gate G1 (anomaly) / G2 (narrative) | **Not run**; defaults `off` / `none` | `eval/decisions/` |
-| 500 MB lab capture, end to end | 61 s mean (39 to 74 s), 3 runs | `eval/results/bench-v1/` |
-| 1M-packet synthetic capture | 126 s mean (97 to 166 s), 3 runs | `eval/results/bench-v1-synthetic/` |
-| Tests / coverage | 730 passed, 13 skipped; 98% of `app/` | `docs/EVALUATION.md` section 6 |
+| 500 MB lab capture, end to end | 24 s mean (20 to 30 s), 3 runs on a quiet host (the 2026-10-09 run, with other load, took 61 s) | `eval/results/bench-v2/` |
+| 1M-packet synthetic capture | 50 s mean (45 to 60 s), 3 runs (earlier run: 126 s) | `eval/results/bench-v2-synthetic/` |
+| Tests / coverage | 736 passed, 13 skipped; 98% of `app/` | `docs/EVALUATION.md` section 6 |
 | Security | 9/9 live sandbox probes; SEC-01..12 mapped to tests | `docs/SECURITY.md` |
 
 ## Limitations

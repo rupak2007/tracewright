@@ -24,7 +24,7 @@ behaviour is *consistent with*, and a packet slice to open in Wireshark. It neve
 ## Questions to be ready for
 
 * **"What is the recall?"** Not measured. The five detectors have run on 4.53 hours of *benign* lab traffic
-  only. Dev false positives: 4 BEACON findings (1.78 per hour with allowlists), all matching labelled benign
+  only. Dev false positives: 6 BEACON findings (2.00 per hour with allowlists, 4 dev runs), all matching labelled benign
   behaviour. Nothing was evaluated on `test`.
 * **"Why is the attack corpus missing?"** This repository generates no attack traffic. Real labelled captures
   can be supplied through `lab/register_external.py` and verified by `lab/verify_run.py`; the protocol,
