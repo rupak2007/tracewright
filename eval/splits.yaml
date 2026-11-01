@@ -32,5 +32,15 @@ assigned:
     run_json_sha256: 3be394f14286ac2157bf7ddc1fc52d6ee0115e9edf5b56fe02376a2b448525ee
     split: test
     stratum: hard_negative:CLOUD_SYNC_UPLOAD+hard_negative:NTP+hard_negative:RSYNC_BACKUP
+  b07:
+    labels_sha256: 362c1e674b54c7ca0296a233c13cbb4ff9b8934e7a695d0a3d49aa18c0304eb9
+    run_json_sha256: 0179b5c7685cdd55005254887ed2f8e0ce099c85a507eacb675c861d664e2c2c
+    split: test
+    stratum: hard_negative:AUTOMATION_SSH+hard_negative:MONITORING_HEARTBEAT+hard_negative:NTP
+  b08:
+    labels_sha256: 060f2d9a1d6df77fdde79e8fcc578360b8228516e85091098b926746cae60dd1
+    run_json_sha256: ea1010f1d1d97ea94788e4a27ecad4bd9cfe4aa77fa4ec0b786fbaaab2b46434
+    split: dev
+    stratum: hard_negative:AUTOMATION_SSH+hard_negative:MONITORING_HEARTBEAT+hard_negative:NTP
 seed: 20261004
 version: 1
