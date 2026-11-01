@@ -38,18 +38,48 @@ user who is allowed to upload (limits exist but are not tuned for abuse).
 | 07 | Loopback binding, optional bearer token, CORS pin | Automated: `test_static_hardening.py::test_every_published_port_binds_loopback_only`; `tests/unit/test_api.py::test_bearer_token_protects_everything_but_health` and `test_cors_allows_only_the_configured_ui_origins`; `tests/unit/test_api_narrative.py` (token on the narrative routes) |
 | 08 | Zeek password capture stays off | Automated: `test_static_hardening.py::test_zeek_never_captures_passwords_and_loads_only_stock_analyzers` (both `default_capture_password` options forced to `F`; only `base/` scripts loaded) |
 | 09 | No secrets in code or images | Automated: `test_static_hardening.py::test_no_secret_is_tracked_and_the_example_env_holds_placeholders_only` (key/token patterns over every tracked file, `.env` untracked, token and API-key placeholders empty), `test_no_generated_data_is_tracked`. Images carry no `.env`: it is supplied at run time (`env_file`) |
-| 10 | Pinned dependencies and images | Automated: `test_every_image_is_pinned_by_digest` (every compose image and every `FROM`), `test_dependency_lockfiles_are_committed` (`uv.lock` installed with `--frozen`, `package-lock.json`). Audits 2026-10-08: `pip-audit` over the exported lock (186 packages): no known vulnerabilities; `npm audit` (runtime and dev): 0 vulnerabilities. Image vulnerability scanning was **not** performed (no scanner installed) |
+| 10 | Pinned dependencies and images | Automated: `test_every_image_is_pinned_by_digest` (every compose image and every `FROM`), `test_dependency_lockfiles_are_committed` (`uv.lock` installed with `--frozen`, `package-lock.json`). Audits 2026-10-08: `pip-audit` 0 and `npm audit` 0. **Re-run 2026-11-01** (section 3a): they found new advisories; the locks and images were updated. Image scanning with Trivy: section 3a |
 | 11 | Complete deletion; retention documented | Automated: `test_retention_delete.py` (rows of every table, the upload, the artifact directory, slices, feedback and narratives gone; a second investigation untouched; unanalysed uploads too) and `tests/unit/test_api.py`. Retention: **none is automatic**. Data stays in the `uploads`, `artifacts` and `pgdata` volumes until the analyst deletes the investigation (UI or `DELETE /api/v1/investigations/{id}`); `docker compose down -v` removes the volumes. A running analysis cannot be deleted (409) |
 | 12 | Logs never carry payloads, credentials or evidence dumps | Automated: `test_log_hygiene.py` (canary DNS names, URIs, user agents, SNI and host headers pushed through a full run, a failing run and a rejected upload: none appears in any log record or in the formatted JSON). Structured logs carry identifiers, stages and counts only (`app/core/logging.py`) |
 
 ## 3. Checks that remain manual or unmeasured
 
 * Opening a packet slice in Wireshark by hand (the slice itself is tested with real tcpdump/editcap).
-* The container images were not scanned for OS-package vulnerabilities; the pinned digests were current
-  on 2026-10-08. Re-resolve and re-pin when updating.
+* Image scan: see section 3a. Re-resolve and re-pin the digests whenever they are updated.
 * GitHub CI **has run**. It FAILED on `v1.0-rc1`/`v1.0-rc2` and on the next push (the sandbox script lacked its executable bit, and 15 split tests hashed raw bytes so they failed on Linux; both fixed). It is **green at commit `df8b008`** (run 41286325329: all three jobs, every step, including the real-Zeek suite, worker sandbox and API end-to-end). An earlier version of this note said CI had never run; that was wrong.
 * The sandbox probes need Docker and are not part of `pytest`; run `scripts/check_worker_sandbox.sh` after any
   change to `docker-compose.yml` or the worker image.
+
+## 3a. Dependency and image audit, 2026-11-01
+
+Everything below was re-run on 2026-11-01 because the 2026-10-08 results were stale.
+
+| Check | Result |
+|---|---|
+| `pip-audit` on the exported lock (186 packages), before | 24 advisories in 4 packages: `certifi`, `filelock`, `opentelemetry-api` (a FastAPI dependency), `virtualenv` (dev only) |
+| after `uv lock --upgrade-package ...` (certifi 2026.10.23, filelock 4.2.6, opentelemetry-api 1.45.2, virtualenv 21.15.2) | **0 known vulnerabilities** |
+| `npm audit`, runtime dependencies (`--omit=dev`) | 0 |
+| `npm audit`, all, before | 17: 2 high (`undici` via jsdom, `zod` via eslint-plugin-react-hooks), 15 moderate |
+| after `npm update undici zod` | 0 high, **15 moderate remain**, all in dev tooling (`minimatch` below 11.0.1 via eslint, typescript-eslint and openapi-typescript; denial of service by crafted glob patterns). **Accepted exception:** nothing from them is in the shipped web image (it contains only the built static files), the only fix npm offers is a breaking downgrade of eslint, and the CI gate is `npm audit --omit=dev --audit-level=high` (green) |
+| Trivy 0.76.1 (pinned by digest), OS and language packages, HIGH and CRITICAL; `eval/results/image-scan-v1/summary.json` | see the next table |
+
+Images were rebuilt first: Python base digest `2d44738e...`, `postgres:16.15` digest `1beaa308...`, `uv` 0.13.6,
+`apt-get upgrade` (worker, API) and `apk upgrade` (web) for fixes published after the pinned bases, `pip`
+and `setuptools` removed from the API image (bundled urllib3/msgpack).
+
+| Image | HIGH + CRITICAL findings | With a fix available |
+|---|---|---|
+| `tracewright-web` (nginx-unprivileged, runs as uid 101) | 0 | 0 |
+| `tracewright-api` | 44 HIGH | **0** |
+| `tracewright-worker` | 123 HIGH + 6 CRITICAL | **0** |
+| `postgres:16.15` (upstream image, not rebuilt) | 86 HIGH + 2 CRITICAL | 25 HIGH + 1 CRITICAL (the Go standard library compiled into the upstream `gosu` binary; fixable only by a new upstream image) |
+
+What remains in the API and worker are Debian packages for which Debian has published no fix (util-linux,
+libxml2, ncurses and the like) and, in the Zeek base image, Node.js and its libraries used by Zeek's package
+manager, which the pipeline never runs. Exposure: the worker has no network, a read-only filesystem and no
+capabilities; the API is loopback-only. This is a **point-in-time scan of the images on one machine**, not a
+guarantee: the lab image (isolated lab network, never shipped) and the optional `ollama` image were not
+scanned. Re-run the three commands in `scripts/summarise_image_scan.py` before any release.
 
 ## 4. Residual risks
 
