@@ -24,6 +24,13 @@ def _build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("pcap", type=Path, help="capture file (PCAP or PCAPNG)")
     analyze.add_argument("--out", type=Path, required=True, help="empty or new output directory")
     analyze.add_argument("--config-dir", type=Path, help="override CONFIG_DIR")
+    analyze.add_argument(
+        "--max-bytes",
+        type=int,
+        help="override MAX_UPLOAD_BYTES (default 500 MiB) for this offline run, for example to "
+        "analyse a large evaluation capture before `lab.verify_run`; the API upload cap is not "
+        "affected",
+    )
     return parser
 
 
@@ -32,6 +39,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     settings = get_pipeline_settings()
     if args.config_dir is not None:
         settings = settings.model_copy(update={"config_dir": args.config_dir})
+    if args.max_bytes is not None:
+        if args.max_bytes <= 0:
+            print(
+                json.dumps(
+                    {"status": "error", "code": "USAGE", "message": "--max-bytes must be positive"}
+                )
+            )
+            return EXIT_USAGE
+        settings = settings.model_copy(update={"max_upload_bytes": args.max_bytes})
     configure_logging(settings.log_level, stream=sys.stderr)  # stdout carries the result JSON
     try:
         status = analyze_capture(args.pcap, args.out, settings)

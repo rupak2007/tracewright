@@ -61,3 +61,23 @@ def test_config_dir_flag(tools: Path, tmp_path: Path, capsys: pytest.CaptureFixt
         ["analyze", str(tools), "--out", str(tmp_path / "o"), "--config-dir", str(tmp_path)]
     )
     assert code == EXIT_USAGE and json.loads(capsys.readouterr().out)["code"] == "CONFIG_INVALID"
+
+
+def test_max_bytes_flag_lifts_the_cap_for_an_offline_evaluation_run(
+    tools: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Regression for the 500 MiB verification constraint: the cap is configurable per run."""
+    small = len(PCAP) - 1
+    assert main(
+        ["analyze", str(tools), "--out", str(tmp_path / "o1"), "--max-bytes", str(small)]
+    ) == (EXIT_ANALYSIS_FAILED)
+    assert json.loads(capsys.readouterr().out)["error"]["code"] == "FILE_TOO_LARGE"
+    assert (
+        main(["analyze", str(tools), "--out", str(tmp_path / "o2"), "--max-bytes", "1000"])
+        == EXIT_OK
+    )
+    capsys.readouterr()
+    assert (
+        main(["analyze", str(tools), "--out", str(tmp_path / "o3"), "--max-bytes", "0"])
+        == EXIT_USAGE
+    )
