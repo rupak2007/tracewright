@@ -139,6 +139,22 @@ def evaluate_run(findings: Sequence[FindingView], episodes: Iterable[Episode]) -
     return result
 
 
+def wilson(successes: int, total: int, z: float = 1.959964) -> tuple[float, float] | None:
+    """95% Wilson score interval for a proportion; None without a denominator.
+
+    Reported next to every recall and precision because the corpus has only a handful of episodes
+    per class (the minimum is 4 per split). It assumes independent episodes, and episodes inside one
+    capture are correlated, so the interval is optimistic: a floor on the uncertainty, never a
+    substitute for more independent runs."""
+    if total <= 0:
+        return None
+    p = successes / total
+    denom = 1 + z * z / total
+    centre = (p + z * z / (2 * total)) / denom
+    half = z * ((p * (1 - p) / total + z * z / (4 * total * total)) ** 0.5) / denom
+    return round(max(0.0, centre - half), 4), round(min(1.0, centre + half), 4)
+
+
 def ratio(numerator: int, denominator: int) -> float | None:
     return None if denominator == 0 else numerator / denominator
 
@@ -160,6 +176,7 @@ def summarise(
         "attack_episodes": dict(sorted(evaluation.attack_episodes.items())),
         "episodes_detected": dict(sorted(evaluation.detected.items())),
         "recall": ratio(total_detected, total_episodes),
+        "recall_ci95": wilson(total_detected, total_episodes),
         "per_class": {
             cls: {
                 "episodes": evaluation.attack_episodes.get(cls, 0),
@@ -174,6 +191,12 @@ def summarise(
                 )
                 if evaluation.findings_by_type.get(cls)
                 else None,
+                "recall_ci95": wilson(
+                    evaluation.detected.get(cls, 0), evaluation.attack_episodes.get(cls, 0)
+                ),
+                "precision_ci95": wilson(
+                    evaluation.matched_by_type.get(cls, 0), evaluation.findings_by_type.get(cls, 0)
+                ),
             }
             for cls in sorted(set(evaluation.attack_episodes) | set(evaluation.findings_by_type))
         },
@@ -182,6 +205,7 @@ def summarise(
                 "episodes": n,
                 "detected": evaluation.sub_detected.get(key, 0),
                 "recall": ratio(evaluation.sub_detected.get(key, 0), n),
+                "recall_ci95": wilson(evaluation.sub_detected.get(key, 0), n),
             }
             for key, n in sorted(evaluation.sub_episodes.items())
         },

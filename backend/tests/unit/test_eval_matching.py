@@ -202,8 +202,14 @@ def test_brute_and_scan_are_reported_per_subpopulation_and_unlabelled_ones_are_n
     ]
     summary = summarise(evaluate_run(hits, episodes), benign_hours=0.0)
     sub = summary["per_subpopulation"]
-    assert sub["BRUTE/ftp_http"] == {"episodes": 2, "detected": 1, "recall": 0.5}
-    assert sub["BRUTE/ssh_rdp_telnet"] == {"episodes": 1, "detected": 0, "recall": 0.0}
+    assert {k: v for k, v in sub["BRUTE/ftp_http"].items() if k != "recall_ci95"} == {
+        "episodes": 2, "detected": 1, "recall": 0.5
+    }  # fmt: skip
+    assert sub["BRUTE/ftp_http"]["recall_ci95"] == (0.0945, 0.9055)  # two episodes: very wide
+    assert (
+        sub["BRUTE/ssh_rdp_telnet"]["detected"] == 0
+        and sub["BRUTE/ssh_rdp_telnet"]["recall"] == 0.0
+    )
     assert sub["BRUTE/unspecified"]["episodes"] == 1
     assert sub["SCAN/slow"]["recall"] == 1.0 and sub["SCAN/default"]["recall"] == 0.0
     assert "BEACON/None" not in sub and not any(k.startswith("BEACON") for k in sub)
@@ -213,7 +219,8 @@ def test_per_class_precision_and_recall_have_no_denominator_games() -> None:
     episodes = [episode_with("SCAN", {"speed": "default"}, "r1-e1", 100)]
     hits = [finding("SCAN", fid="F-1"), finding("SCAN", primary=OTHER, secondary=(), fid="F-2")]
     per_class = summarise(evaluate_run(hits, episodes), benign_hours=1.0)["per_class"]
-    assert per_class["SCAN"] == {
+    scan_row = {k: v for k, v in per_class["SCAN"].items() if not k.endswith("_ci95")}
+    assert scan_row == {
         "episodes": 1,
         "detected": 1,
         "recall": 1.0,
@@ -224,3 +231,31 @@ def test_per_class_precision_and_recall_have_no_denominator_games() -> None:
     empty = summarise(evaluate_run([finding("BEACON", primary=OTHER, secondary=())], []), 1.0)
     assert empty["per_class"]["BEACON"]["recall"] is None  # no episodes: not 0
     assert empty["per_class"]["BEACON"]["precision"] == 0.0  # a finding that matched nothing
+
+
+def test_wilson_interval_matches_known_values_and_has_no_denominator_games() -> None:
+    from eval.matching import wilson
+
+    assert wilson(0, 0) is None
+    assert wilson(4, 4) == (0.5101, 1.0)  # four of four does NOT mean certainty
+    assert wilson(0, 10) == (0.0, 0.2775)
+    assert wilson(5, 10) == (0.2366, 0.7634)
+    lo, hi = wilson(30, 100) or (0.0, 0.0)
+    assert 0.0 < lo < 0.3 < hi < 1.0
+
+
+def test_summaries_carry_intervals_where_a_denominator_exists_and_none_otherwise() -> None:
+    episodes = [
+        episode_with("SCAN", {"speed": "default"}, f"r1-e{n}", 1000 * n) for n in range(1, 5)
+    ]
+    hits = [
+        finding("SCAN", start=1000 * n + 20, end=1000 * n + 40, fid=f"F-{n}") for n in range(1, 4)
+    ]
+    summary = summarise(evaluate_run(hits, episodes), benign_hours=1.0)
+    assert summary["recall"] == 0.75 and summary["recall_ci95"] == (0.3006, 0.9544)
+    scan = summary["per_class"]["SCAN"]
+    assert scan["recall_ci95"] == summary["recall_ci95"] and scan["precision"] == 1.0
+    assert scan["precision_ci95"][1] == 1.0 and scan["precision_ci95"][0] < 1.0
+    assert summary["per_subpopulation"]["SCAN/default"]["recall_ci95"] == (0.3006, 0.9544)
+    benign = summarise(evaluate_run([], []), benign_hours=1.0)
+    assert benign["recall"] is None and benign["recall_ci95"] is None
