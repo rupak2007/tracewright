@@ -159,3 +159,68 @@ def test_merge_and_ratio() -> None:
     total.merge(b)
     assert total.attack_episodes == {"SCAN": 1, "BRUTE": 1} and total.detected == {"SCAN": 1}
     assert ratio(1, 0) is None and ratio(1, 4) == 0.25
+
+
+def episode_with(cls: str, params: dict[str, object], eid: str, start: int = 100) -> Episode:
+    return Episode(
+        run_id="r1",
+        episode_id=eid,
+        kind="attack",
+        cls=cls,
+        actor=ACTOR,
+        targets=(TARGET,),
+        start=T0 + timedelta(seconds=start),
+        end=T0 + timedelta(seconds=start + 100),
+        params=params,
+    )
+
+
+def test_brute_and_scan_are_reported_per_subpopulation_and_unlabelled_ones_are_not_hidden() -> None:
+    from eval.matching import subgroup
+
+    episodes = [
+        episode_with("BRUTE", {"service": "ftp"}, "r1-e1", 100),
+        episode_with("BRUTE", {"service": "HTTP"}, "r1-e2", 1000),
+        episode_with("BRUTE", {"service": "ssh"}, "r1-e3", 2000),
+        episode_with("BRUTE", {}, "r1-e4", 3000),
+        episode_with("SCAN", {"speed": "slow"}, "r1-e5", 4000),
+        episode_with("SCAN", {"speed": "default"}, "r1-e6", 5000),
+        episode_with("BEACON", {}, "r1-e7", 6000),
+    ]
+    assert [subgroup(e) for e in episodes] == [
+        "ftp_http",
+        "ftp_http",
+        "ssh_rdp_telnet",
+        "unspecified",
+        "slow",
+        "default",
+        None,
+    ]
+    hits = [  # detect the FTP and the slow scan only
+        finding("BRUTE", start=120, end=150, fid="F-1"),
+        finding("SCAN", start=4020, end=4050, fid="F-2"),
+    ]
+    summary = summarise(evaluate_run(hits, episodes), benign_hours=0.0)
+    sub = summary["per_subpopulation"]
+    assert sub["BRUTE/ftp_http"] == {"episodes": 2, "detected": 1, "recall": 0.5}
+    assert sub["BRUTE/ssh_rdp_telnet"] == {"episodes": 1, "detected": 0, "recall": 0.0}
+    assert sub["BRUTE/unspecified"]["episodes"] == 1
+    assert sub["SCAN/slow"]["recall"] == 1.0 and sub["SCAN/default"]["recall"] == 0.0
+    assert "BEACON/None" not in sub and not any(k.startswith("BEACON") for k in sub)
+
+
+def test_per_class_precision_and_recall_have_no_denominator_games() -> None:
+    episodes = [episode_with("SCAN", {"speed": "default"}, "r1-e1", 100)]
+    hits = [finding("SCAN", fid="F-1"), finding("SCAN", primary=OTHER, secondary=(), fid="F-2")]
+    per_class = summarise(evaluate_run(hits, episodes), benign_hours=1.0)["per_class"]
+    assert per_class["SCAN"] == {
+        "episodes": 1,
+        "detected": 1,
+        "recall": 1.0,
+        "findings": 2,
+        "matched_findings": 1,
+        "precision": 0.5,
+    }
+    empty = summarise(evaluate_run([finding("BEACON", primary=OTHER, secondary=())], []), 1.0)
+    assert empty["per_class"]["BEACON"]["recall"] is None  # no episodes: not 0
+    assert empty["per_class"]["BEACON"]["precision"] == 0.0  # a finding that matched nothing

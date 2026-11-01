@@ -29,6 +29,32 @@ TOLERANCE = timedelta(seconds=60)
 ENTITY_BY_TARGET = ("DNSTUN", "BEACON", "EXFIL")  # affected host may be recorded as a target
 
 
+BRUTE_OBSERVED = ("ftp", "http", "https")  # failures are observed in the protocol (PRD §10)
+BRUTE_INFERRED = ("ssh", "rdp", "telnet")  # inferred from connection patterns
+
+
+def subgroup(episode: Episode) -> str | None:
+    """The sub-population PRD §18 reports separately, from the episode's `params`.
+
+    BRUTE: `params.service` in ftp/http/https -> "ftp_http"; ssh/rdp/telnet -> "ssh_rdp_telnet";
+    anything else -> "unspecified" (reported, never silently folded into another group).
+    SCAN: `params.speed` "slow" -> "slow", "default" -> "default"; anything else "unspecified".
+    Other classes have no sub-populations (None)."""
+    if episode.kind != "attack":
+        return None
+    if episode.cls == "BRUTE":
+        service = str(episode.params.get("service", "")).lower()
+        if service in BRUTE_OBSERVED:
+            return "ftp_http"
+        if service in BRUTE_INFERRED:
+            return "ssh_rdp_telnet"
+        return "unspecified"
+    if episode.cls == "SCAN":
+        speed = str(episode.params.get("speed", "")).lower()
+        return speed if speed in ("slow", "default") else "unspecified"
+    return None
+
+
 @dataclass(frozen=True)
 class FindingView:
     """The few finding fields matching needs (decoupled from the pydantic model)."""
@@ -68,6 +94,12 @@ class RunEvaluation:
 
     attack_episodes: Counter[str] = field(default_factory=Counter)
     detected: Counter[str] = field(default_factory=Counter)
+    # per sub-population ("BRUTE/ftp_http", "SCAN/slow", ...), see `subgroup`
+    sub_episodes: Counter[str] = field(default_factory=Counter)
+    sub_detected: Counter[str] = field(default_factory=Counter)
+    # findings per type, and findings per type that matched an attack episode (per-class precision)
+    findings_by_type: Counter[str] = field(default_factory=Counter)
+    matched_by_type: Counter[str] = field(default_factory=Counter)
     # findings matching no attack episode: [(finding id, type, confidence, matched hard negative)]
     false_positives: list[tuple[str, str, str, str | None]] = field(default_factory=list)
     findings: int = 0
@@ -75,6 +107,10 @@ class RunEvaluation:
     def merge(self, other: "RunEvaluation") -> None:
         self.attack_episodes.update(other.attack_episodes)
         self.detected.update(other.detected)
+        self.sub_episodes.update(other.sub_episodes)
+        self.sub_detected.update(other.sub_detected)
+        self.findings_by_type.update(other.findings_by_type)
+        self.matched_by_type.update(other.matched_by_type)
         self.false_positives += other.false_positives
         self.findings += other.findings
 
@@ -86,10 +122,17 @@ def evaluate_run(findings: Sequence[FindingView], episodes: Iterable[Episode]) -
     hard_negatives = [e for e in eps if e.kind == "hard_negative"]
     for e in attacks:
         result.attack_episodes[e.cls] += 1
+        group = subgroup(e)
+        if group is not None:
+            result.sub_episodes[f"{e.cls}/{group}"] += 1
         if any(matches(f, e) for f in findings):
             result.detected[e.cls] += 1
+            if group is not None:
+                result.sub_detected[f"{e.cls}/{group}"] += 1
     for f in findings:
+        result.findings_by_type[f.type] += 1
         if any(matches(f, e) for e in attacks):
+            result.matched_by_type[f.type] += 1
             continue
         hit = next((h.cls for h in hard_negatives if matches(f, h)), None)
         result.false_positives.append((f.id, f.type, f.confidence, hit))
@@ -117,6 +160,31 @@ def summarise(
         "attack_episodes": dict(sorted(evaluation.attack_episodes.items())),
         "episodes_detected": dict(sorted(evaluation.detected.items())),
         "recall": ratio(total_detected, total_episodes),
+        "per_class": {
+            cls: {
+                "episodes": evaluation.attack_episodes.get(cls, 0),
+                "detected": evaluation.detected.get(cls, 0),
+                "recall": ratio(evaluation.detected.get(cls, 0), evaluation.attack_episodes[cls])
+                if evaluation.attack_episodes.get(cls)
+                else None,
+                "findings": evaluation.findings_by_type.get(cls, 0),
+                "matched_findings": evaluation.matched_by_type.get(cls, 0),
+                "precision": ratio(
+                    evaluation.matched_by_type.get(cls, 0), evaluation.findings_by_type[cls]
+                )
+                if evaluation.findings_by_type.get(cls)
+                else None,
+            }
+            for cls in sorted(set(evaluation.attack_episodes) | set(evaluation.findings_by_type))
+        },
+        "per_subpopulation": {
+            key: {
+                "episodes": n,
+                "detected": evaluation.sub_detected.get(key, 0),
+                "recall": ratio(evaluation.sub_detected.get(key, 0), n),
+            }
+            for key, n in sorted(evaluation.sub_episodes.items())
+        },
         "precision": ratio(true_positive_findings, evaluation.findings) if total_episodes else None,
         "false_positive_findings_all_confidence": len(evaluation.false_positives),
         "false_positive_findings_medium_high": len(counted),

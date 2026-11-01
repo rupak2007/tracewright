@@ -449,6 +449,7 @@ def test_external_runs_have_no_recipe_and_are_never_treated_as_duplicates() -> N
         origin="external",
         clients=({"id": "c1", "ip": "172.20.0.101"},),
         provenance=valid_submission()["provenance"],
+        campaign_id="camp-e1",
     )
     assert splits.recipe_key(meta) is None
 
@@ -478,3 +479,64 @@ def test_report_partitions_all_requirements_by_source_exactly_as_analysed() -> N
     }
     assert counts == {splits.SOURCE_LAB: 10, splits.SOURCE_SSH: 1, splits.SOURCE_EXTERNAL: 16}
     assert sum(counts.values()) == len(reqs) == 27
+
+
+def test_subpopulation_report_is_informational_and_counts_per_split(runs_dir: Path) -> None:
+    from lab.schema import Episode
+
+    write_run(runs_dir, "a1", [("attack", "BRUTE", "hydra")])
+    runs = splits.load_runs(runs_dir)
+    ep = runs["a1"].episodes[0]
+    brute = Episode(
+        ep.run_id, ep.episode_id, ep.kind, ep.cls, ep.actor, ep.targets, ep.start, ep.end,
+        ep.tool, {"service": "ssh"},
+    )  # fmt: skip
+    from dataclasses import replace
+
+    runs["a1"] = replace(runs["a1"], episodes=(brute,))
+    manifest_ = manifest({"a1": {"split": "test", "stratum": "s"}})
+    rows = {n: (d, t) for n, d, t in splits.subpopulation_report(manifest_, runs)}
+    assert rows["BRUTE/ssh_rdp_telnet"] == (0, 1)
+    assert rows["BRUTE/ftp_http"] == (0, 0) and rows["SCAN/slow"] == (
+        0,
+        0,
+    )  # shown even when absent
+    assert len(splits.corpus_report(manifest_, runs)) == 27  # the denominator did not change
+
+
+def _external(run_id: str, campaign: str, holdout: bool = False) -> Any:
+    from dataclasses import replace
+
+    from lab.runmeta import RunMeta
+
+    from tests.lab_helpers import valid_submission
+
+    base = splits.LoadedRun(
+        RunMeta(
+            run_id=run_id, capture_sha256=(run_id.encode().hex() * 64)[:64], capture_bytes=1,
+            start="2026-11-02T10:00:00.000Z", end="2026-11-02T10:10:00.000Z", seed=None,
+            holdout=holdout, benign_only=False, duration_s=600.0, scenarios=(),
+            network_config="network.lab.yaml", origin="external",
+            clients=({"id": "c1", "ip": "172.20.0.101"},),
+            provenance=valid_submission()["provenance"], campaign_id=campaign,
+        ),
+        (), "x", "y", True, "verified",
+    )  # fmt: skip
+    return replace(base)
+
+
+def test_runs_of_one_campaign_always_land_in_one_split_and_validate_flags_a_violation() -> None:
+    runs = {r: _external(r, "camp-A") for r in ("a1", "a2", "a3")}
+    runs["b1"] = _external("b1", "camp-B")
+    created = splits.assign_new({}, runs, seed=1)
+    assert len({created[r]["split"] for r in ("a1", "a2", "a3")}) == 1  # one campaign, one split
+    later = {"a4": _external("a4", "camp-A")}
+    runs.update(later)
+    again = splits.assign_new({**created}, runs, seed=1)
+    assert again["a4"]["split"] == created["a1"]["split"]  # a late arrival follows its campaign
+    assert not any("campaign" in p for p in splits.validate({"assigned": created}, runs))
+    broken = {k: dict(v) for k, v in created.items()}
+    other = "dev" if created["a1"]["split"] == "test" else "test"
+    broken["a2"]["split"] = other
+    problems = splits.validate({"assigned": broken}, runs)
+    assert any("campaign 'camp-A' is in more than one split" in p for p in problems)

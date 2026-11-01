@@ -158,6 +158,11 @@ def assign_new(
     for entry in existing.values():
         counts.setdefault(entry["stratum"], dict.fromkeys(SPLIT_NAMES, 0))[entry["split"]] += 1
     created: dict[str, dict[str, str]] = {}
+    campaign_split: dict[str, str] = {}
+    for run_id, entry in existing.items():
+        run = runs.get(run_id)
+        if run is not None and run.meta.campaign_id:
+            campaign_split.setdefault(run.meta.campaign_id, entry["split"])
     candidates = [run_id for run_id, r in runs.items() if run_id not in existing and r.eligible]
     blocked = recipe_duplicates(runs, candidates, _assigned_recipes(existing, runs))
     pending = sorted(
@@ -165,11 +170,16 @@ def assign_new(
     )
     for run_stratum, run_id in pending:
         tally = counts.setdefault(run_stratum, dict.fromkeys(SPLIT_NAMES, 0))
-        if tally["dev"] == tally["test"]:
+        campaign = runs[run_id].meta.campaign_id
+        if campaign and campaign in campaign_split:
+            split = campaign_split[campaign]  # one campaign, one split (no cross-split leakage)
+        elif tally["dev"] == tally["test"]:
             split = SPLIT_NAMES[_tie_break(seed, run_id)]
         else:
             split = "dev" if tally["dev"] < tally["test"] else "test"
         tally[split] += 1
+        if campaign:
+            campaign_split.setdefault(campaign, split)
         run = runs[run_id]
         created[run_id] = {
             "split": split,
@@ -224,6 +234,19 @@ def validate(
             problems.append(f"{run_id}: verified but has no split assignment (run `assign`)")
     for run_id in sorted(set(assigned) - set(runs)):
         problems.append(f"{run_id}: assigned but no run record exists")
+    campaign_splits: dict[str, dict[str, list[str]]] = {}
+    for run_id, entry in assigned.items():
+        run = runs.get(run_id)
+        if run is not None and run.meta.campaign_id:
+            campaign_splits.setdefault(run.meta.campaign_id, {}).setdefault(
+                str(entry.get("split")), []
+            ).append(run_id)
+    for campaign, by_split in sorted(campaign_splits.items()):
+        if len(by_split) > 1:
+            problems.append(
+                f"campaign {campaign!r} is in more than one split ({by_split}): the same campaign "
+                "must never appear in both dev and test"
+            )
     for run_id, entry in assigned.items():
         if entry.get("split") not in SPLIT_NAMES:
             problems.append(f"{run_id}: invalid split {entry.get('split')!r}")
@@ -374,6 +397,31 @@ def corpus_report(manifest: Mapping[str, Any], runs: Mapping[str, LoadedRun]) ->
     return out
 
 
+def subpopulation_report(
+    manifest: Mapping[str, Any], runs: Mapping[str, LoadedRun]
+) -> list[tuple[str, int, int]]:
+    """Episodes per PRD §18 sub-population in each split: (name, dev, test).
+
+    INFORMATIONAL: these rows are not part of the 27 requirements (the denominator is unchanged).
+    They show whether the separate BRUTE (FTP/HTTP vs SSH) and SCAN (default vs slow) figures the
+    PRD asks for can be reported at all; an unlabelled episode lands in 'unspecified'."""
+    from eval.matching import subgroup
+
+    split_of = {run_id: e["split"] for run_id, e in manifest["assigned"].items()}
+    counts: dict[str, dict[str, int]] = {}
+    for run_id, run in runs.items():
+        split = split_of.get(run_id)
+        if split not in SPLIT_NAMES:
+            continue
+        for e in run.episodes:
+            group = subgroup(e)
+            if group is not None:
+                counts.setdefault(f"{e.cls}/{group}", dict.fromkeys(SPLIT_NAMES, 0))[split] += 1
+    wanted = ("BRUTE/ftp_http", "BRUTE/ssh_rdp_telnet", "SCAN/default", "SCAN/slow")
+    names = sorted(set(wanted) | set(counts))
+    return [(n, counts.get(n, {}).get("dev", 0), counts.get(n, {}).get("test", 0)) for n in names]
+
+
 def _git_head_manifest() -> dict[str, Any] | None:
     result = subprocess.run(
         ["git", "show", "HEAD:eval/splits.yaml"],  # noqa: S607
@@ -442,6 +490,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         group = [r for r in requirements if r.source == source]
         missing = sum(1 for r in group if not r.met)
         print(f"  unmet {missing}/{len(group)} that depend on: {source}")
+    print()
+    print("Reportable sub-populations (PRD section 18; informational, not part of the count):")
+    for name, dev_n, test_n in subpopulation_report(manifest, runs):
+        print(f"  {name:<26} dev {dev_n:<3} test {test_n}")
     return 1 if (args.require_complete and unmet) else 0
 
 
