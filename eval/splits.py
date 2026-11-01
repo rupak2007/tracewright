@@ -42,6 +42,11 @@ MIN_EPISODES_PER_CLASS_PER_SPLIT = 4
 MIN_HOLDOUT_FAMILIES = 3
 MIN_HOLDOUT_TEST_CAPTURES = 8
 MIN_BENIGN_HOURS = 4.0
+# PRD section 18 reports these sub-populations separately (decision 2026-11-01): the minimum
+# episodes per split below which a separate figure is not defensible. The recommended
+# acquisition (docs/CAPTURE_ACQUISITION_PLAN.md) is 4 per BRUTE family per split.
+MIN_BRUTE_FAMILY_EPISODES_PER_SPLIT = 2
+MIN_SLOW_SCAN_EPISODES_PER_SPLIT = 1
 
 
 @dataclass(frozen=True)
@@ -422,6 +427,32 @@ def subpopulation_report(
     return [(n, counts.get(n, {}).get("dev", 0), counts.get(n, {}).get("test", 0)) for n in names]
 
 
+def reporting_prerequisites(
+    manifest: Mapping[str, Any], runs: Mapping[str, LoadedRun]
+) -> list[Requirement]:
+    """What must exist so the PRD section 18 per-sub-population figures can be reported at all.
+
+    NOT part of the 27 requirements (that denominator is unchanged), but the test split is refused
+    until these are met too, because a test evaluation without them could not produce the BRUTE
+    FTP/HTTP vs SSH and slow-scan figures the PRD asks for."""
+    needed = {
+        "BRUTE/ftp_http": MIN_BRUTE_FAMILY_EPISODES_PER_SPLIT,
+        "BRUTE/ssh_rdp_telnet": MIN_BRUTE_FAMILY_EPISODES_PER_SPLIT,
+        "SCAN/slow": MIN_SLOW_SCAN_EPISODES_PER_SPLIT,
+    }
+    counts = {name: (dev, test) for name, dev, test in subpopulation_report(manifest, runs)}
+    out: list[Requirement] = []
+    for name, minimum in needed.items():
+        for index, split in enumerate(SPLIT_NAMES):
+            n = counts.get(name, (0, 0))[index]
+            out.append(
+                Requirement(
+                    f"reportable {name} episodes ({split})", f">= {minimum}", str(n), n >= minimum
+                )
+            )
+    return out
+
+
 def _git_head_manifest() -> dict[str, Any] | None:
     result = subprocess.run(
         ["git", "show", "HEAD:eval/splits.yaml"],  # noqa: S607
@@ -491,10 +522,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         missing = sum(1 for r in group if not r.met)
         print(f"  unmet {missing}/{len(group)} that depend on: {source}")
     print()
-    print("Reportable sub-populations (PRD section 18; informational, not part of the count):")
+    print(
+        "Reportable sub-populations (PRD section 18; not part of the 27, but required before test):"
+    )
     for name, dev_n, test_n in subpopulation_report(manifest, runs):
         print(f"  {name:<26} dev {dev_n:<3} test {test_n}")
-    return 1 if (args.require_complete and unmet) else 0
+    prerequisites = reporting_prerequisites(manifest, runs)
+    unmet_prerequisites = [r for r in prerequisites if not r.met]
+    for r in prerequisites:
+        status = "MET   " if r.met else "UNMET "
+        print(f"{status} {r.name:<55} required {r.required:<16} actual {r.actual}")
+    met_n = len(prerequisites) - len(unmet_prerequisites)
+    print(f"{met_n}/{len(prerequisites)} reporting prerequisites met")
+    return 1 if (args.require_complete and (unmet or unmet_prerequisites)) else 0
 
 
 if __name__ == "__main__":

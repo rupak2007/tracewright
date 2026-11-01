@@ -39,6 +39,7 @@ from eval.splits import (
     corpus_report,
     load_manifest,
     load_runs,
+    reporting_prerequisites,
 )
 
 REPO = Path(__file__).resolve().parents[1]
@@ -60,7 +61,11 @@ def check_split_allowed(split: str, manifest: dict[str, Any], runs: dict[str, Lo
     if split not in ("dev", "test"):
         raise HarnessError(f"unknown split {split!r}")
     if split == "test":
-        unmet = [r for r in corpus_report(manifest, runs) if not r.met]
+        unmet = [
+            r
+            for r in [*corpus_report(manifest, runs), *reporting_prerequisites(manifest, runs)]
+            if not r.met
+        ]
         if unmet:
             raise HarnessError(
                 f"refusing to evaluate the test split: {len(unmet)} corpus requirement(s) are "

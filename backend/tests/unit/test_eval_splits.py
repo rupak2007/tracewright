@@ -540,3 +540,78 @@ def test_runs_of_one_campaign_always_land_in_one_split_and_validate_flags_a_viol
     broken["a2"]["split"] = other
     problems = splits.validate({"assigned": broken}, runs)
     assert any("campaign 'camp-A' is in more than one split" in p for p in problems)
+
+
+def _runs_with_params(runs_dir: Path, plan: list[tuple[str, str, dict[str, object]]]) -> Any:
+    """Verified synthetic attack runs, each with one episode carrying the given params."""
+    from dataclasses import replace
+
+    from lab.schema import Episode
+
+    for run_id, cls, _params in plan:
+        write_run(runs_dir, run_id, [("attack", cls, "")])
+    runs = splits.load_runs(runs_dir)
+    for run_id, _cls, params in plan:
+        e = runs[run_id].episodes[0]
+        patched = Episode(
+            e.run_id,
+            e.episode_id,
+            e.kind,
+            e.cls,
+            e.actor,
+            e.targets,
+            e.start,
+            e.end,
+            e.tool,
+            params,
+        )
+        runs[run_id] = replace(runs[run_id], episodes=(patched,))
+    return runs
+
+
+def test_reporting_prerequisites_need_both_brute_families_and_a_slow_scan_per_split(
+    runs_dir: Path,
+) -> None:
+    """Decision 2026-11-01: >= 2 FTP/HTTP, >= 2 SSH BRUTE episodes and >= 1 slow scan per split."""
+    plan: list[tuple[str, str, dict[str, object]]] = []
+    for i in range(4):  # 4 runs of each family: identical strata split 2/2
+        plan.append((f"f{i}", "BRUTE", {"service": "ftp"}))
+        plan.append((f"s{i}", "BRUTE", {"service": "ssh"}))
+    for i in range(2):
+        plan.append((f"w{i}", "SCAN", {"speed": "slow"}))
+    runs = _runs_with_params(runs_dir, plan)
+    assigned = {
+        rid: {"split": "dev" if n % 2 else "test", "stratum": "x"} for n, rid in enumerate(runs)
+    }
+    # force a balanced layout regardless of the hash
+    layout = {"f0": "dev", "f1": "dev", "f2": "test", "f3": "test", "s0": "dev", "s1": "dev",
+              "s2": "test", "s3": "test", "w0": "dev", "w1": "test"}  # fmt: skip
+    assigned = {rid: {"split": layout[rid], "stratum": "x"} for rid in runs}
+    rows = splits.reporting_prerequisites(manifest(assigned), runs)
+    assert len(rows) == 6 and all(r.met for r in rows), [
+        (r.name, r.actual) for r in rows if not r.met
+    ]
+    assigned["s3"]["split"] = "dev"  # test now has no SSH episode left but 0 < the minimum of 2
+    broken = {r.name: r for r in splits.reporting_prerequisites(manifest(assigned), runs)}
+    assert not broken["reportable BRUTE/ssh_rdp_telnet episodes (test)"].met
+    assert broken["reportable BRUTE/ftp_http episodes (test)"].met
+    assert len(splits.corpus_report(manifest(assigned), runs)) == 27  # the 27 are untouched
+
+
+def test_the_test_split_is_also_refused_while_a_reporting_prerequisite_is_unmet(
+    tmp_path: Path,
+) -> None:
+    from eval import run_detectors as harness
+
+    runs_dir = tmp_path / "runs"
+    runs_dir.mkdir()
+    write_run(runs_dir, "b1")  # benign, nothing else: the 27 and the prerequisites are both unmet
+    runs = splits.load_runs(runs_dir)
+    with pytest.raises(harness.HarnessError, match="refusing to evaluate the test split"):
+        harness.check_split_allowed("test", manifest(), runs)
+    # the unmet-count in the message includes the prerequisites (27 corpus rows + 6 prerequisites)
+    try:
+        harness.check_split_allowed("test", manifest(), runs)
+    except harness.HarnessError as exc:
+        assert "unmet" in str(exc)
+    harness.check_split_allowed("dev", manifest(), runs)
