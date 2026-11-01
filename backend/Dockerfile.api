@@ -1,7 +1,7 @@
 # API image: never runs Zeek/tcpdump on capture bytes (SEC-02). Same Python minor as the worker (3.13).
-FROM python:3.13-slim-trixie@sha256:bb2988715db2cf7ace7b53f38f3cffbef7c7046a656bee66245eb0ed386e2e81
+FROM python:3.13-slim-trixie@sha256:2d44738ebf4ce5f63b9d9ea871e9c7cfdc0426f7b0c97cac915fd88ded1d86bb
 
-ARG UV_VERSION=0.12.23
+ARG UV_VERSION=0.13.6
 ARG UID=10001
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
@@ -13,7 +13,11 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
     PYTHONPATH=/app \
     PATH="/opt/venv/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-RUN groupadd --gid ${UID} tracewright \
+# security fixes Debian published after the pinned base was built
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --gid ${UID} tracewright \
  && useradd --uid ${UID} --gid ${UID} --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin tracewright \
  && mkdir -p /data/uploads /data/artifacts \
  && chown ${UID}:${UID} /data/uploads /data/artifacts
@@ -23,7 +27,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN pip install --no-cache-dir uv==${UV_VERSION} \
  && uv sync --frozen --no-dev --no-install-project \
- && pip uninstall -y uv
+ && pip uninstall -y uv pip setuptools
 
 COPY app ./app
 COPY alembic.ini ./
