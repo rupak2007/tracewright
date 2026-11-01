@@ -1,0 +1,279 @@
+{
+  "results": [
+    {
+      "capture": "bench-200MB.pcap",
+      "bytes": 200007237,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 14.06,
+      "pipeline_seconds": 13.38,
+      "max_child_rss_mb": 257.2,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 2036,
+        "zeek_parse": 2678,
+        "normalise": 281,
+        "profile": 2709,
+        "detect": 61,
+        "anomaly": 18,
+        "correlate": 0,
+        "explain": 36
+      },
+      "connections": 153,
+      "findings": 1,
+      "incidents": 1,
+      "outcome": "completed",
+      "capinfos": "/in/c,27339",
+      "repeat": 1
+    },
+    {
+      "capture": "bench-200MB.pcap",
+      "bytes": 200007237,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 13.25,
+      "pipeline_seconds": 12.73,
+      "max_child_rss_mb": 255.2,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 1426,
+        "zeek_parse": 3427,
+        "normalise": 269,
+        "profile": 2481,
+        "detect": 69,
+        "anomaly": 18,
+        "correlate": 0,
+        "explain": 39
+      },
+      "connections": 153,
+      "findings": 1,
+      "incidents": 1,
+      "outcome": "completed",
+      "capinfos": "/in/c,27339",
+      "repeat": 2
+    },
+    {
+      "capture": "bench-200MB.pcap",
+      "bytes": 200007237,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 12.38,
+      "pipeline_seconds": 11.81,
+      "max_child_rss_mb": 255.5,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 1359,
+        "zeek_parse": 2626,
+        "normalise": 260,
+        "profile": 2396,
+        "detect": 73,
+        "anomaly": 17,
+        "correlate": 0,
+        "explain": 36
+      },
+      "connections": 153,
+      "findings": 1,
+      "incidents": 1,
+      "outcome": "completed",
+      "capinfos": "/in/c,27339",
+      "repeat": 3
+    },
+    {
+      "capture": "bench-500MB.pcap",
+      "bytes": 500048429,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 22.5,
+      "pipeline_seconds": 21.91,
+      "max_child_rss_mb": 255.3,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 5095,
+        "zeek_parse": 5281,
+        "normalise": 267,
+        "profile": 6133,
+        "detect": 39,
+        "anomaly": 19,
+        "correlate": 0,
+        "explain": 29
+      },
+      "connections": 357,
+      "findings": 0,
+      "incidents": 0,
+      "outcome": "completed",
+      "capinfos": "/in/c,71853",
+      "repeat": 1
+    },
+    {
+      "capture": "bench-500MB.pcap",
+      "bytes": 500048429,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 20.97,
+      "pipeline_seconds": 20.42,
+      "max_child_rss_mb": 255.1,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 3291,
+        "zeek_parse": 5380,
+        "normalise": 273,
+        "profile": 6222,
+        "detect": 39,
+        "anomaly": 19,
+        "correlate": 0,
+        "explain": 25
+      },
+      "connections": 357,
+      "findings": 0,
+      "incidents": 0,
+      "outcome": "completed",
+      "capinfos": "/in/c,71853",
+      "repeat": 2
+    },
+    {
+      "capture": "bench-500MB.pcap",
+      "bytes": 500048429,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 30.89,
+      "pipeline_seconds": 30.33,
+      "max_child_rss_mb": 254.8,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 3396,
+        "zeek_parse": 8023,
+        "normalise": 335,
+        "profile": 13312,
+        "detect": 90,
+        "anomaly": 23,
+        "correlate": 0,
+        "explain": 32
+      },
+      "connections": 357,
+      "findings": 0,
+      "incidents": 0,
+      "outcome": "completed",
+      "capinfos": "/in/c,71853",
+      "repeat": 3
+    },
+    {
+      "capture": "bench-50MB.pcap",
+      "bytes": 50000362,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 12.3,
+      "pipeline_seconds": 11.65,
+      "max_child_rss_mb": 250.7,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 589,
+        "zeek_parse": 1537,
+        "normalise": 638,
+        "profile": 653,
+        "detect": 64,
+        "anomaly": 35,
+        "correlate": 0,
+        "explain": 32
+      },
+      "connections": 32,
+      "findings": 0,
+      "incidents": 0,
+      "outcome": "completed",
+      "capinfos": "/in/c,2050",
+      "repeat": 1
+    },
+    {
+      "capture": "bench-50MB.pcap",
+      "bytes": 50000362,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 11.45,
+      "pipeline_seconds": 10.79,
+      "max_child_rss_mb": 250.8,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 390,
+        "zeek_parse": 1640,
+        "normalise": 521,
+        "profile": 785,
+        "detect": 66,
+        "anomaly": 20,
+        "correlate": 0,
+        "explain": 30
+      },
+      "connections": 32,
+      "findings": 0,
+      "incidents": 0,
+      "outcome": "completed",
+      "capinfos": "/in/c,2050",
+      "repeat": 2
+    },
+    {
+      "capture": "bench-50MB.pcap",
+      "bytes": 50000362,
+      "container_limits": {
+        "memory": "3g",
+        "cpus": "4"
+      },
+      "wall_seconds_including_container_start": 11.25,
+      "pipeline_seconds": 10.46,
+      "max_child_rss_mb": 251.6,
+      "status": "completed",
+      "error_code": null,
+      "stage_ms": {
+        "validate": 352,
+        "zeek_parse": 1456,
+        "normalise": 353,
+        "profile": 669,
+        "detect": 45,
+        "anomaly": 18,
+        "correlate": 0,
+        "explain": 28
+      },
+      "connections": 32,
+      "findings": 0,
+      "incidents": 0,
+      "outcome": "completed",
+      "capinfos": "/in/c,2050",
+      "repeat": 3
+    }
+  ],
+  "host": {
+    "platform": "Windows-11-10.0.22621-SP0",
+    "processor": "Intel64 Family 6 Model 158 Stepping 10, GenuineIntel",
+    "docker_cpus": 6,
+    "docker_memory_bytes": 5159124992,
+    "docker_os": "Docker Desktop (containerized)"
+  },
+  "image": "tracewright-worker:latest",
+  "git": {
+    "commit": "d6f1ba075c34287c6b02ce72dc076b438cdcc244",
+    "dirty": false
+  },
+  "generated_at": "2026-11-01T11:15:11.409953+00:00",
+  "note": "Captures are real benign lab captures cut/concatenated for sizing only."
+}
