@@ -333,3 +333,22 @@ assume assignment balances within each stratum (A4).
 | Q10 per-family minimum | Still open. The infrastructure now reports per-sub-population recall and prints per-split counts (informational) | `eval.splits report`, `eval/matching.py` |
 | BRUTE/SCAN sub-populations | Required in `params` at registration (`service`, `speed`) | `check_subpopulation_params` |
 | Still open (human decisions) | Q1, Q2, Q3, Q6, Q7, Q9, Q10 | `docs/COMPLETION_LEDGER.md` |
+
+---
+
+## I. Decisions taken (2026-11-01) and what they changed
+
+Decided by the project owner; recorded here so the plan and the handoff agree. Do not re-ask.
+
+| # | Decision | Effect |
+|---|---|---|
+| Q1 | Captures are produced in an **authorised, isolated lab outside this repository**, by us or an approved external collaborator | The repository ships requirements, templates and validation only (`docs/CAPTURE_HANDOFF.md`); no attack tooling is added; captures and provenance are never fabricated |
+| Q2 | Implement a benign `AUTOMATION_SSH` lab-runner scenario | Done: `lab/benign/scenarios.py::automation_ssh`, real OpenSSH in the lab image (key pair generated at image build, nothing committed). Two corpus runs planned in `lab/corpus/benign_v2.json` |
+| Q3 | Prepare a licensing enquiry for the Tianjin iodine/dnscat2 PCAPs; use nothing until licence and provenance are clear | `docs/licensing/TIANJIN_DNS_TUNNEL_ENQUIRY.md` (draft, not sent). The isolated-lab path continues in parallel |
+| Q6 | Held-out families: `ICMP_TUNNEL`, `SLOWLORIS`, `REVERSE_SHELL`. `SMB_RPC_ENUM` only with a legitimate, independently verified environment and sufficient ground truth | Handoff lists those three; held-out `test` captures are never used for tuning (section A5) |
+| Q7 | Target the **recommended 26 to 28 independent runs** | 8 combined attack runs, 2 benign `AUTOMATION_SSH` runs (unless validly folded into an independent design), 16 held-out runs, plus independent spares. No slicing, no campaign reuse across splits |
+| Q9 | CICIDS2017 and CSE-CIC-IDS2018 for secondary sanity checks only, kept separate from the 27 | Licence terms were read from the sources (section C): both ask for citation; CSE-CIC-IDS2018 states redistribution is permitted with a link; CICIDS2017 states no licence beyond "publicly available for researchers". Nothing downloaded. Each download still needs explicit approval of file, source and size |
+| Q10 | Both BRUTE families are mandatory reporting populations: **minimum 2 FTP/HTTP and 2 SSH episodes per split, recommended 4 each**; the slow-scan requirement stays (>= 1 per split) | Enforced: `eval.splits.reporting_prerequisites` (6 rows, outside the 27) now also gates the `test` split (`eval/REVISIONS.md` #11) |
+
+The acquisition target for the minimum plan is therefore: 4 combined attack runs give 2 per family per split
+only if each run carries one FTP/HTTP and one SSH BRUTE episode (as in section F); the recommended 8 runs give 4.

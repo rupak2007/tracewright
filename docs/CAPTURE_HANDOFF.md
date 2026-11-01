@@ -16,15 +16,15 @@ One directory per run:
     capture.pcap        (or capture.pcapng; exactly one)
 ```
 
-Deliver at least the **minimum** below; the **recommended** set gives defensible statistics. Every run is
+The agreed target is the **recommended** set (26 to 28 independent runs: 8 combined attack runs, 2 `AUTOMATION_SSH` runs unless folded in, 16 held-out runs, spares if needed). The **minimum** (4 attack runs, 16 held-out) only turns the 17 rows green and is not a sound sample size. Every run is
 an independent execution: its own seed, parameters, capture file and `campaign_id`. Never slice one
 recording into several runs, never register one campaign twice, never repeat a campaign in both splits.
 
 | Set | Runs | Contents |
 |---|---|---|
-| Attack runs | 4 (minimum) / 8 (recommended), identical label sets | per run: 2 SCAN (≥ 1 slow, `params.speed`), 2 BRUTE (1 FTP/HTTP + 1 SSH, `params.service`), 2 BEACON, 2 EXFIL, 2 DNSTUN (`tool` exactly `iodine` and `dnscat2`) |
-| `AUTOMATION_SSH` (benign) | 2, or an episode in every attack run | `kind: hard_negative`, `class: AUTOMATION_SSH` |
-| Held-out runs | 16 (`holdout: true`), identical label sets | one episode each of three of `ICMP_TUNNEL`, `SLOWLORIS`, `SMB_RPC_ENUM`, `REVERSE_SHELL` |
+| Attack runs | 4 (minimum) / 8 (recommended), identical label sets | per run: 2 SCAN (≥ 1 slow, `params.speed`), 2 BRUTE (1 FTP/HTTP + 1 SSH, `params.service`), 2 BEACON, 2 EXFIL, 2 DNSTUN (`tool` exactly `iodine` and `dnscat2`). BRUTE targets: minimum 2 FTP/HTTP and 2 SSH per split, recommended 4 each; at least 1 slow scan per split (the `test` split stays locked until these are met) |
+| `AUTOMATION_SSH` (benign) | covered by the lab runner (runs b07 and b08, `lab/corpus/benign_v2.json`); a supplier does not need to provide it | `kind: hard_negative`, `class: AUTOMATION_SSH` |
+| Held-out runs | 16 (`holdout: true`), identical label sets | one episode each of `ICMP_TUNNEL`, `SLOWLORIS`, `REVERSE_SHELL`. `SMB_RPC_ENUM` only if you have a legitimate, independently verified environment and sufficient ground truth; it is not required |
 
 Splits are assigned by the tool after verification, never by hand. Identical label sets split 50/50.
 
