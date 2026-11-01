@@ -320,3 +320,16 @@ assume assignment balances within each stratum (A4).
 9. **CICIDS2017 / CSE-CIC-IDS2018** for the PRD's secondary checks: still deferred? Each download
    needs approval.
 10. **Per-family BRUTE minimum.** The PRD requires FTP/HTTP and SSH to be reported separately but sets no minimum per family. Accept 2 per family per split (minimum plan), 4 (recommended plan), or set a different number before anything is recorded?
+
+---
+
+## H. Status update (2026-11-01): what repository work has resolved
+
+| Item | Resolution | Evidence |
+|---|---|---|
+| Q5 campaign duplicates | Implemented: required `campaign_id`; runs of one campaign are assigned to one split and `validate` fails otherwise. Slicing one recording is still not detectable by code (E2) | `eval/REVISIONS.md` #10; `test_runs_of_one_campaign_always_land_in_one_split...` |
+| Q8 analysis size limit | Resolved: `python -m app.cli analyze --max-bytes <n>` for offline evaluation runs; the API cap is unchanged | `test_max_bytes_flag_lifts_the_cap...` |
+| Q4, topology part | Resolved as a check: DNSTUN/BEACON/EXFIL actors must be internal and EXFIL needs an external target under the run's `network_config`, otherwise registration rejects the submission. The supplier still has to provide a suitable address plan | `test_network_roles_reject_episodes...`; `docs/CAPTURE_HANDOFF.md` |
+| Q10 per-family minimum | Still open. The infrastructure now reports per-sub-population recall and prints per-split counts (informational) | `eval.splits report`, `eval/matching.py` |
+| BRUTE/SCAN sub-populations | Required in `params` at registration (`service`, `speed`) | `check_subpopulation_params` |
+| Still open (human decisions) | Q1, Q2, Q3, Q6, Q7, Q9, Q10 | `docs/COMPLETION_LEDGER.md` |

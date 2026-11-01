@@ -47,8 +47,7 @@ user who is allowed to upload (limits exist but are not tuned for abuse).
 * Opening a packet slice in Wireshark by hand (the slice itself is tested with real tcpdump/editcap).
 * The container images were not scanned for OS-package vulnerabilities; the pinned digests were current
   on 2026-10-08. Re-resolve and re-pin when updating.
-* CI has never run on GitHub, so the Postgres, frontend and end-to-end steps added to
-  `.github/workflows/ci.yml` are unproven there. They pass locally.
+* GitHub CI **has run**. It FAILED on `v1.0-rc1`/`v1.0-rc2` and on the next push (the sandbox script lacked its executable bit, and 15 split tests hashed raw bytes so they failed on Linux; both fixed). It is **green at commit `df8b008`** (run 41286325329: all three jobs, every step, including the real-Zeek suite, worker sandbox and API end-to-end). An earlier version of this note said CI had never run; that was wrong.
 * The sandbox probes need Docker and are not part of `pytest`; run `scripts/check_worker_sandbox.sh` after any
   change to `docker-compose.yml` or the worker image.
 

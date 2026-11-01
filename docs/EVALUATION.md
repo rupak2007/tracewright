@@ -96,7 +96,7 @@ by a wide margin on both shapes, and no stage was changed for speed. Caveats, no
 
 ## 6. Software correctness
 
-* Tests (2026-10-09, full suite incl. security and integration, local Python 3.12): 722 passed, 13 skipped
+* Tests (2026-10-09, full suite incl. security and integration, local Python 3.12): 730 passed, 13 skipped
   (skips: real-Zeek tests outside the worker image, opt-in PostgreSQL tests, the real ATT&CK bundle test).
   Line coverage of `app/`: 98%; `app/detect/` 99% to 100% per file, `app/correlate/` 100%,
   `app/explain/validator.py` 98% (targets: 90%).
@@ -123,8 +123,8 @@ by a wide margin on both shapes, and no stage was changed for speed. Caveats, no
 * **Benchmark host.** One machine, noisy I/O, 3 repeats, a synthetic 1M-packet input.
 * **Entity matching.** The protocol reading (actor or target counts as the affected host) was widened
   before any attack label existed (`eval/REVISIONS.md` #6); revisit it when real labels exist.
-* **No external review.** Neither the security notes nor the protocol have been reviewed by anyone else, and
-  CI has never run on GitHub (the workflow was only exercised locally).
+* **No external review.** Neither the security notes nor the protocol have been reviewed by anyone else.
+* **CI history.** GitHub CI **has run**. It FAILED on `v1.0-rc1`/`v1.0-rc2` and on the next push (the sandbox script lacked its executable bit, and 15 split tests hashed raw bytes so they failed on Linux; both fixed). It is **green at commit `df8b008`** (run 41286325329: all three jobs, every step, including the real-Zeek suite, worker sandbox and API end-to-end).
 
 ## 8. How to complete the evaluation
 
@@ -163,5 +163,4 @@ a malformed multipart body and out-of-range integer ids or offsets returned 500;
 (6) the worker container received the whole `.env` (LLM key, API token); (7) an upload above Nginx's
 520 MB limit was answered with an HTML page instead of the API's JSON error.
 Not fixed, documented: the P5 "swamping ablation" was never run (G1 not run); the `db` service keeps default
-capabilities (Postgres needs several); CI has still never run on GitHub (its steps were reproduced in a fresh
-clone); a delete racing a just-claimed queued job is possible but unlikely and untested.
+capabilities (Postgres needs several); CI had in fact run on GitHub and failed (see section 7); a delete racing a just-claimed queued job is possible but unlikely and untested.

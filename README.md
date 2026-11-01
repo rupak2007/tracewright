@@ -77,7 +77,7 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL -
 | Gate G1 (anomaly) / G2 (narrative) | **Not run**; defaults `off` / `none` | `eval/decisions/` |
 | 500 MB lab capture, end to end | 61 s mean (39 to 74 s), 3 runs | `eval/results/bench-v1/` |
 | 1M-packet synthetic capture | 126 s mean (97 to 166 s), 3 runs | `eval/results/bench-v1-synthetic/` |
-| Tests / coverage | 722 passed, 13 skipped; 98% of `app/` | `docs/EVALUATION.md` section 6 |
+| Tests / coverage | 730 passed, 13 skipped; 98% of `app/` | `docs/EVALUATION.md` section 6 |
 | Security | 9/9 live sandbox probes; SEC-01..12 mapped to tests | `docs/SECURITY.md` |
 
 ## Limitations
@@ -90,7 +90,7 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL -
   set `API_TOKEN` to require a token), no TLS.
 * The optional narrative is machine-generated and shown only if a deterministic validator accepts it;
   it remains opt-in because G2 was not run.
-* CI has never run on GitHub; everything was verified locally (see `docs/SECURITY.md` section 3).
+* GitHub CI: failed on `v1.0-rc1` and `v1.0-rc2` (two defects, fixed), green at `df8b008`. The `v1.0-rc2` tag therefore points at a red build.
 * Packet slices contain real payload bytes. Pseudonymisation is not anonymisation.
 
 ## Documents
