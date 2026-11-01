@@ -5,8 +5,8 @@ evidence), IN PROGRESS, BLOCKED (external dependency or human decision), NOT STA
 No percentages: nothing here has a defensible measurable basis for one.
 
 **Release status: NOT releasable as `v1.0`.** The software is complete and CI-green; the scientific
-evaluation is blocked on data this repository cannot produce. `v1.0-rc2` points at a build that was
-red on GitHub; a new release candidate tag follows the next green run (below).
+evaluation is blocked on data this repository cannot produce. `v1.0-rc1` and `v1.0-rc2` point at builds that were
+red on GitHub; `v1.0-rc3` is the first green release candidate.
 
 | Requirement | Status | Evidence | Remaining blocker |
 |---|---|---|---|
@@ -32,7 +32,7 @@ red on GitHub; a new release candidate tag follows the next green run (below).
 | Image CVE scan | NOT STARTED | none | scanner not installed here; decide on a tool |
 | Licence for third-party DNS-tunnel captures (acquisition plan C5) | BLOCKED | no licence stated by the source | **permission** from the authors |
 | `v1.0` tag | BLOCKED | PRD §19 #2, #8 unmet | everything above |
-| New release candidate tag after the green run | NOT STARTED | `v1.0-rc2` was red on GitHub; rc1 and rc2 are not moved | tag only after the final CI run is green |
+| New release candidate tag after the green run | COMPLETE | `v1.0-rc3` on `45af6db`, CI run 41286595410 green; rc1 and rc2 (red) are not moved | none |
 
 ## Separation of work
 
