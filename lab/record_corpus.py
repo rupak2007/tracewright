@@ -27,13 +27,24 @@ REPO = Path(__file__).resolve().parents[1]
 DATA = REPO / "data"
 
 
+# Every file `load_analysis_config` reads besides network.yaml and profile.yaml. anomaly.yaml was
+# missing when stage S5 was added, so analysing a freshly recorded run failed (found on b07).
+STAGED_CONFIG_FILES = (
+    "detectors.yaml",
+    "correlation.yaml",
+    "anomaly.yaml",
+    "attack.yaml",
+    "attack_mapping.yaml",
+)
+
+
 def _stage_config(network_config: str) -> Path:
     """Config dir for the worker: the lab's network context presented as network.yaml."""
     target = DATA / "lab_config"
     (target / "zeek").mkdir(parents=True, exist_ok=True)
     shutil.copyfile(REPO / "config" / network_config, target / "network.yaml")
     shutil.copyfile(REPO / "config" / "profile.yaml", target / "profile.yaml")
-    for name in ("detectors.yaml", "correlation.yaml", "attack.yaml", "attack_mapping.yaml"):
+    for name in STAGED_CONFIG_FILES:
         shutil.copyfile(REPO / "config" / name, target / name)
     shutil.copyfile(REPO / "config" / "zeek" / "site.zeek", target / "zeek" / "site.zeek")
     return target

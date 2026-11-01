@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 pytest.importorskip("lab")
@@ -41,3 +43,23 @@ def test_duplicate_client_in_a_plan_is_rejected_before_any_docker_call(
     )
     assert code == 2 and "one scenario per run" in capsys.readouterr().err
     assert not (run_lab.DATA / "dup-test").exists()
+
+
+def test_staged_worker_config_is_complete_enough_to_load_the_analysis_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: record_corpus staged too few files (anomaly.yaml was missing), so the analysis of
+    a newly recorded run failed with CONFIG_INVALID."""
+    from lab import record_corpus
+
+    from app.core.config import PipelineSettings
+    from app.worker.analysis_config import load_analysis_config
+
+    repo = Path(record_corpus.REPO)
+    monkeypatch.setattr(record_corpus, "DATA", tmp_path)
+    staged = record_corpus._stage_config("network.lab.yaml")
+    assert {p.name for p in staged.glob("*.yaml")} >= set(record_corpus.STAGED_CONFIG_FILES)
+    acfg = load_analysis_config(
+        PipelineSettings(config_dir=staged, knowledge_dir=repo / "knowledge")
+    )
+    assert acfg.network.internal_cidrs  # the lab network context was presented as network.yaml
