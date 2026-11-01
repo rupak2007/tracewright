@@ -12,7 +12,7 @@ pytest.importorskip("lab")
 from eval import splits
 from lab.runmeta import RunMeta, load_run
 from lab.schema import ATTACK_CLASSES, HARD_NEGATIVE_CLASSES, HOLDOUT_CLASSES, Episode
-from lab.verification import FILE_NAME, Verification, sha256_file
+from lab.verification import FILE_NAME, Verification, text_sha256
 
 T0 = datetime(2026, 11, 2, 10, 0, 0, tzinfo=UTC)
 
@@ -76,8 +76,8 @@ def write_verification(run_dir: Path, meta: RunMeta, *, passed: bool) -> None:
         passed=passed,
         problems=() if passed else ("synthetic failure",),
         capture_sha256=meta.capture_sha256,
-        run_json_sha256=sha256_file(run_dir / "run.json"),
-        labels_sha256=sha256_file(run_dir / "labels.jsonl"),
+        run_json_sha256=text_sha256(run_dir / "run.json"),
+        labels_sha256=text_sha256(run_dir / "labels.jsonl"),
         analysis_zeek_version="synthetic",
         analysis_connections=0,
         verified_at="2026-11-02T10:20:00.000Z",
