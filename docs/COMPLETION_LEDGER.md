@@ -6,7 +6,7 @@ defensible measurable basis for one.
 
 **Release status: NOT releasable as `v1.0`.** The software, security posture and CI are complete and green;
 the scientific evaluation is blocked on captures this repository will not and must not generate.
-`v1.0-rc3` is the latest release candidate (green CI); rc1 and rc2 were red on GitHub and are left as published.
+`v1.0-rc4` (on `522ddcc`, green CI) is the latest release candidate; rc1 and rc2 were red on GitHub and rc3 predates this session's work; all are left as published.
 
 | Requirement | Status | Evidence | Remaining blocker |
 |---|---|---|---|
