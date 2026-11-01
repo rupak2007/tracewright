@@ -225,11 +225,20 @@ def test_manifest_round_trip_and_version_check(tmp_path: Path) -> None:
 
 
 FROZEN_BENIGN_RUNS = ["b01", "b02", "b03", "b04", "b05", "b06"]
+# appended later through the normal verify-then-assign path (eval/datasets.md, REVISIONS #11)
+APPENDED_BENIGN_RUNS = ["b07", "b08"]
+ALL_BENIGN_RUNS = FROZEN_BENIGN_RUNS + APPENDED_BENIGN_RUNS
+# the split of each frozen run as first recorded (eval/datasets.md): these never change
+FROZEN_SPLITS = {
+    "b01": "test", "b02": "dev", "b03": "test", "b04": "dev", "b05": "dev", "b06": "test",
+}  # fmt: skip
 
 
 def test_shipped_manifest_is_valid_and_holds_only_the_frozen_benign_runs() -> None:
     shipped = splits.load_manifest()
-    assert sorted(shipped["assigned"]) == FROZEN_BENIGN_RUNS  # see eval/datasets.md
+    assert sorted(shipped["assigned"]) == ALL_BENIGN_RUNS  # see eval/datasets.md
+    for run_id, split in FROZEN_SPLITS.items():  # the frozen assignments were never moved
+        assert shipped["assigned"][run_id]["split"] == split, run_id
     assert splits.validate(shipped, splits.load_runs()) == []
 
 
@@ -283,7 +292,8 @@ def test_cli_report_exit_codes(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     assert splits.main(["report"]) == 0
-    assert "10/27 requirements met; 17 unmet" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "11/27 requirements met; 16 unmet" in out and "0/6 reporting prerequisites met" in out
     assert splits.main(["report", "--require-complete"]) == 1
     assert splits.main(["validate"]) == 0
 
@@ -374,13 +384,13 @@ def test_hidden_staging_directories_are_ignored(runs_dir: Path) -> None:
 
 def test_the_shipped_manifest_holds_only_verified_benign_runs_and_no_attack_classes() -> None:
     manifest_runs = splits.load_manifest()["assigned"]
-    assert sorted(manifest_runs) == FROZEN_BENIGN_RUNS
-    assert sorted(p.name for p in splits.RUNS_DIR.iterdir() if p.is_dir()) == FROZEN_BENIGN_RUNS
+    assert sorted(manifest_runs) == ALL_BENIGN_RUNS
+    assert sorted(p.name for p in splits.RUNS_DIR.iterdir() if p.is_dir()) == ALL_BENIGN_RUNS
     runs = splits.load_runs()
-    for run_id in FROZEN_BENIGN_RUNS:
+    for run_id in ALL_BENIGN_RUNS:
         assert runs[run_id].eligible and runs[run_id].meta.origin == "lab_runner"
         assert {e.kind for e in runs[run_id].episodes} == {"hard_negative"}  # no attack, no holdout
-    splits_used = {manifest_runs[r]["split"] for r in FROZEN_BENIGN_RUNS}
+    splits_used = {manifest_runs[r]["split"] for r in ALL_BENIGN_RUNS}
     assert splits_used == {"dev", "test"}  # run-level separation: each run sits in exactly one
 
 

@@ -1,8 +1,8 @@
-# Capture acquisition plan: 10/27 to 27/27
+# Capture acquisition plan: from 10/27 (now 11/27) to 27/27
 
 | Field | Value |
 |---|---|
-| Status | **Plan only.** Nothing has been downloaded, recorded, registered or assigned. Corpus: **10/27** (`python -m eval.splits report`, 2026-11-01, `v1.0-rc2`, commit `0823a2c`) |
+| Status | **Plan, with the decisions in section I applied.** The plan was written at 10/27; the benign runs b07 and b08 (section I) have since raised it to **11/27**. No third-party data has been downloaded, registered or assigned. Corpus: **10/27** (`python -m eval.splits report`, 2026-11-01, `v1.0-rc2`, commit `0823a2c`) |
 | Scope | The 17 unmet rows of `eval/splits.py::corpus_report` |
 | Unchanged by this plan | `eval/PROTOCOL.md`, `eval/splits.yaml`, `lab/runs/*`, `config/*`, thresholds, result files |
 | Evidence tags | **[code]** verified in this repository; **[source]** verified on the dataset's own page (URL in section C); **[assumption]** not verified; **[decision]** needs a human |

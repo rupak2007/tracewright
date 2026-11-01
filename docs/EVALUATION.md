@@ -23,7 +23,7 @@ sandbox and malformed-input checks).
 
 ## 2. Corpus
 
-`python -m eval.splits report` (run 2026-10-08): **10 of 27 requirements met**.
+`python -m eval.splits report` (run 2026-10-08): **10 of 27 requirements met**. Since 2026-11-01 it is **11 of 27** (benign runs b07 and b08 added the `AUTOMATION_SSH` hard negative to both splits; nothing else changed, and every attack, held-out and DNS-tunnel row is still unmet).
 
 * Recorded and frozen: six verified benign lab runs b01 to b06 (45 minutes each, 4.53 hours, 18 hard-negative
   episodes, zero Zeek missed bytes). Split by run: `dev` = b02, b04, b05; `test` = b01, b03, b06

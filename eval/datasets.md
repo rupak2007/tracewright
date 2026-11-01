@@ -85,6 +85,26 @@ All six committed runs were recorded after these fixes except b01/b02, which wer
 missed bytes and correct labels. The `lab_runner` run.json records `capture_bytes` and `duration_s` (wall clock
 including container start-up, so 4.53 h is slightly above the planned 6 x 2700 s = 4.5 h).
 
+### Benign corpus v2 (`lab/corpus/benign_v2.json`), recorded 2026-11-01
+
+Two further real recordings that add the `AUTOMATION_SSH` hard negative (scheduled bursts of short,
+key-authenticated SSH sessions to a real OpenSSH server in the lab image, each running `true`). Recorded,
+analysed in the worker and verified with the same tooling; appended to `eval/splits.yaml` (existing entries
+untouched, `eval.splits validate --against-git` OK). Each run also carries `NTP` and `MONITORING_HEARTBEAT`.
+
+| Run | Split | Seed | Scenarios | Duration (s) | Capture (MB) | Zeek connections | Capture SHA-256 |
+|---|---|---|---|---|---|---|---|
+| b07 | test | 1700 | automation_ssh (burst 12, every 150 s) + ntp + monitoring_heartbeat | 2701 | 2.5 | 322 | `177288a9d67a8273a132add47fbcd1dc928f66c35a32ea82f1736434aefad528` |
+| b08 | dev | 1800 | automation_ssh (burst 20, every 240 s) + ntp + monitoring_heartbeat | 2729 | 2.8 | 315 | `7e8da3a89b0a887702743c816356d446a06b33d5b1b5fbd9d7af21637e5f3655` |
+
+Total benign hours are now 6.04. `python -m eval.splits report`: **11 of 27** requirements met (the 10 above plus
+`AUTOMATION_SSH` in both splits); 16 unmet, all of them attack, held-out or DNS-tunnel rows. The first
+analysis of b07 failed (`lab.record_corpus` did not stage `anomaly.yaml`, a bug introduced with stage S5); it was
+fixed and covered by a test, and the recording itself was not repeated (the capture was complete and the
+labels verified). The detectors were not run on b07 or b08 for tuning; the benign BEACON finding on these runs
+is a false positive attributable to monitoring heartbeats or SSH bursts, which will be measured, not tuned away,
+when attack data exists.
+
 ## Corpus source assessment (2026-10-04)
 
 Question: which unmet P2 requirements can which source satisfy? `python -m eval.splits report` prints the
