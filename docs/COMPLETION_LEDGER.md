@@ -1,6 +1,6 @@
 # Project completion ledger
 
-State at 2026-11-01 (second session), `master`. Statuses: COMPLETE (verified with evidence), IN PROGRESS,
+State at 2026-11-01 (final audit, `docs/FINAL_AUDIT.md`), `master`. Statuses: COMPLETE (verified with evidence), IN PROGRESS,
 BLOCKED (external dependency or human decision), NOT STARTED, FAILED. No percentages: nothing here has a
 defensible measurable basis for one.
 
@@ -10,6 +10,10 @@ the scientific evaluation is blocked on captures this repository will not and mu
 
 | Requirement | Status | Evidence | Remaining blocker |
 |---|---|---|---|
+| Final audit (`docs/FINAL_AUDIT.md`, `docs/RELEASE_READINESS.md`) | COMPLETE | every check re-run 2026-11-01: 736 tests, ruff, mypy, frontend, audits (0 / 0 runtime), Trivy `image-scan-v2`, 9/9 sandbox probes, compose and API workflow, corpus validation, benchmark `bench-v3`; CI green on `394b699` (run 41302110203) and `f67080f` (run 41306184226). No open finding above Low except the missing-evidence finding | none |
+| Wilson 95% intervals on detector metrics | COMPLETE | `eval/matching.py`, tests; optimistic for within-capture correlation (stated) | none |
+| Reporting rule for PRD section 18 targets (met only if the interval's lower bound reaches the target) | BLOCKED | `docs/FINAL_AUDIT.md` section 6 | **protocol decision by the project owner**, before any result exists |
+| Choose a LICENSE file | BLOCKED | none present | **decision by the project owner** |
 | Implementation P0-P10 | COMPLETE | `docs/plan.md`; 736 tests passed, 13 skipped, 98% line coverage (detect 99-100%, validator 98%), local 2026-11-01; 481 passed / 33 skipped in the real-Zeek worker image; frontend 23 tests | none |
 | GitHub CI | COMPLETE | green on every push of this session through `d6f1ba0` (run 41300660380: lint, mypy, pytest incl. Postgres and corpus integrity; docker job with real Zeek, sandbox probes, API end-to-end; web job). Earlier red runs: `docs/EVALUATION.md` §7 | re-confirm after the final push (below) |
 | Fresh-clone reproducibility | COMPLETE | `git clone` from GitHub, `docker compose up --build`, API end-to-end on lab capture b07 (2026-11-01, `d6f1ba0`); CI repeats it | none |
