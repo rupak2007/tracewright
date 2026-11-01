@@ -112,7 +112,7 @@ def test_registry_covers_every_hard_negative_scenario() -> None:
     labelled = {s.cls for s in SCENARIOS.values() if s.cls}
     assert labelled == {
         "NTP", "MONITORING_HEARTBEAT", "RSYNC_BACKUP", "CLOUD_SYNC_UPLOAD",
-        "PACKAGE_UPDATE", "CDN_BROWSING", "VIDEO_STREAMING",
+        "PACKAGE_UPDATE", "CDN_BROWSING", "VIDEO_STREAMING", "AUTOMATION_SSH",
     }  # fmt: skip
     assert SCENARIOS["background_browsing"].cls is None
     assert SCENARIOS["cloud_sync_upload"].external and not SCENARIOS["rsync_backup"].external
@@ -213,3 +213,40 @@ def test_which_scenarios_are_repeatable() -> None:
 def test_source_address_is_the_interface_used_for_the_destination() -> None:
     assert scenarios._source_address(LOCAL, "fallback") == LOCAL
     assert scenarios._source_address("not an address", "fallback") == "fallback"
+
+
+# ---- AUTOMATION_SSH (benign: scheduled key-authenticated sessions that run `true`) ---------
+def test_automation_ssh_is_a_registered_benign_hard_negative() -> None:
+    scenario = SCENARIOS["automation_ssh"]
+    assert scenario.cls == "AUTOMATION_SSH" and not scenario.external
+
+
+def test_ssh_command_is_a_fixed_non_interactive_argv_to_the_lab_host_only() -> None:
+    argv = scenarios.ssh_command("172.20.0.20", 22)
+    assert argv[0] == "ssh" and argv[-2:] == [
+        "lab@172.20.0.20",
+        "true",
+    ]  # runs `true`, nothing else
+    assert "BatchMode=yes" in argv and "IdentitiesOnly=yes" in argv and "-F" in argv
+    assert not any(" " in part for part in argv)  # one argv element each; never a shell string
+    assert argv[argv.index("-p") + 1] == "22" and argv[argv.index("-i") + 1] == scenarios.SSH_KEY
+
+
+def test_automation_ssh_runs_bursts_through_subprocess_without_a_shell(
+    ports: Ports, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[list[str], dict[str, Any]]] = []
+
+    def fake_run(argv: list[str], **kwargs: Any) -> None:
+        calls.append((argv, kwargs))
+
+    monkeypatch.setattr(scenarios.subprocess, "run", fake_run)
+    labels = tmp_path / "labels.jsonl"
+    ctx = make_ctx(ports, interval_s=1, burst=4, gap_s=0.0)
+    run_scenario("automation_ssh", ctx, Labeler(labels, "r001", id_prefix="c101-"))
+    assert len(calls) == 4  # one burst of four sessions (the duration allows exactly one)
+    assert all(kw["shell"] is False and kw["check"] is False for _, kw in calls)
+    assert all(argv == scenarios.ssh_command(LOCAL, ports.ssh) for argv, _ in calls)
+    [episode] = read_labels(labels)
+    assert episode.kind == "hard_negative" and episode.cls == "AUTOMATION_SSH"
+    assert episode.params["burst"] == 4 and episode.targets == (LOCAL,)

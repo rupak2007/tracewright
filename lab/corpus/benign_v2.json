@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "description": "Benign lab corpus v2: two real recordings that add the AUTOMATION_SSH hard negative (scheduled key-authenticated SSH sessions) to both splits. Same stratum, so a run-level 50/50 split places one in dev and one in test; seeds and parameters differ (no identical recipes). Benign only: no attack traffic.",
+  "network_config": "network.lab.yaml",
+  "runs": [
+    {"run_id": "b07", "seed": 1700, "plan": [
+      "client1:automation_ssh:2700:{\"interval_s\":150,\"burst\":12,\"gap_s\":1.0}",
+      "client2:ntp:2700:{\"interval_s\":72}",
+      "client3:monitoring_heartbeat:2700:{\"interval_s\":40}"]},
+    {"run_id": "b08", "seed": 1800, "plan": [
+      "client1:automation_ssh:2700:{\"interval_s\":240,\"burst\":20,\"gap_s\":0.5}",
+      "client2:ntp:2700:{\"interval_s\":110}",
+      "client3:monitoring_heartbeat:2700:{\"interval_s\":55}"]}
+  ]
+}

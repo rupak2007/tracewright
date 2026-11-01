@@ -13,6 +13,7 @@ import http.client
 import random
 import socket
 import struct
+import subprocess
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -174,6 +175,43 @@ def video_streaming(ctx: Context) -> None:
     _http(ctx.internal_host, ctx.ports.stream, "GET", f"/stream?kbps={kbps}&seconds={seconds}")
 
 
+SSH_KEY = "/opt/lab/ssh/id_lab"  # lab-only key pair generated when the lab image is built
+SSH_USER = "lab"
+
+
+def ssh_command(host: str, port: int, key: str = SSH_KEY, user: str = SSH_USER) -> list[str]:
+    """argv for ONE automated, non-interactive, key-authenticated session that runs `true`.
+
+    A fixed list (never a shell string); the only variable parts are the lab host and port. Host-
+    key checking is off: the lab is an isolated network whose server key is generated per image."""
+    return [
+        "ssh", "-F", "none", "-i", key, "-p", str(port),
+        "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes",
+        "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
+        "-o", "LogLevel=ERROR", "-o", "ConnectTimeout=10",
+        f"{user}@{host}", "true",
+    ]  # fmt: skip
+
+
+def automation_ssh(ctx: Context) -> None:
+    """Scheduled automation (a cron job, a config-management run): bursts of short, successful,
+    key-authenticated SSH sessions to one server. Legitimate, but the shape - many short connections
+    with near-identical byte counts - is what DET-BRUTE infers password guessing from, so a finding
+    here is a false positive. Parameters: `interval_s` between bursts, `burst` sessions per burst,
+    `gap_s` between sessions of a burst."""
+    interval = float(ctx.param("interval_s", 120))
+    burst = int(ctx.param("burst", 12))
+    gap = float(ctx.param("gap_s", 1.0))
+    argv = ssh_command(ctx.internal_host, ctx.ports.ssh)
+
+    def run_burst() -> None:
+        for _ in range(burst):
+            subprocess.run(argv, check=False, shell=False, timeout=30, capture_output=True)  # noqa: S603
+            ctx.sleep(gap)
+
+    _periodic(ctx, interval, run_burst)
+
+
 def background_browsing(ctx: Context) -> None:
     """Unlabelled ordinary activity: a handful of names, some page fetches, think time."""
     end = _deadline(ctx)
@@ -217,6 +255,7 @@ SCENARIOS: dict[str, Scenario] = {
         Scenario("package_update", package_update, "PACKAGE_UPDATE", repeatable=True),
         Scenario("cdn_browsing", cdn_browsing, "CDN_BROWSING", repeatable=True),
         Scenario("video_streaming", video_streaming, "VIDEO_STREAMING"),
+        Scenario("automation_ssh", automation_ssh, "AUTOMATION_SSH"),
         Scenario("background_browsing", background_browsing, None),
     )
 }

@@ -50,8 +50,10 @@ services:
     sysctls: { net.ipv4.ip_unprivileged_port_start: 0 }
     mem_limit: 512m
     pids_limit: 128
+    # OpenSSH (benign AUTOMATION_SSH target, key auth only) next to the Python services
+    command: ["sh", "-c", "/usr/sbin/sshd -D -e -f /opt/lab/sshd_config & exec python -m lab.benign.servers"]
     healthcheck:
-      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8080), 2)"]
+      test: ["CMD", "python", "-c", "import socket; [socket.create_connection(('127.0.0.1', p), 2) for p in (8080, 22)]"]
       interval: 2s
       timeout: 3s
       retries: 15

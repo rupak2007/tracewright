@@ -27,6 +27,7 @@ class Ports:
     backup: int = 873
     dns: int = 53
     ntp: int = 123
+    ssh: int = 22  # served by OpenSSH in the services container, not by this module
 
 
 def _body(seed: str, size: int) -> bytes:

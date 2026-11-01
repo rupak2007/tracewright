@@ -6,10 +6,28 @@ ARG UID=10002
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/opt/lab
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends tcpdump \
+ && apt-get install -y --no-install-recommends tcpdump openssh-server openssh-client \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --gid ${UID} lab \
  && useradd --uid ${UID} --gid ${UID} --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin lab
+
+# Benign SSH for the AUTOMATION_SSH hard negative. The key pair and host key are generated HERE, at
+# image build time, so nothing secret is committed; the isolated lab network is their only use. sshd
+# runs as the unprivileged `lab` user (no PAM, key auth only, every session runs `true`).
+RUN mkdir -p /opt/lab/ssh /run/sshd \
+ && ssh-keygen -q -t ed25519 -N '' -f /opt/lab/ssh/id_lab \
+ && ssh-keygen -q -t ed25519 -N '' -f /opt/lab/ssh/host_key \
+ && cp /opt/lab/ssh/id_lab.pub /opt/lab/ssh/authorized_keys \
+ && usermod --shell /bin/sh --password '*' lab \
+ && chown -R ${UID}:${UID} /opt/lab/ssh /run/sshd \
+ && chmod 700 /opt/lab/ssh \
+ && chmod 600 /opt/lab/ssh/id_lab /opt/lab/ssh/host_key \
+ && printf '%s\n' \
+    'Port 22' 'HostKey /opt/lab/ssh/host_key' 'PidFile /tmp/sshd.pid' 'UsePAM no' \
+    'StrictModes no' 'PasswordAuthentication no' 'KbdInteractiveAuthentication no' \
+    'PubkeyAuthentication yes' 'AuthorizedKeysFile /opt/lab/ssh/authorized_keys' \
+    'AllowUsers lab' 'ForceCommand /bin/true' 'PermitTTY no' 'X11Forwarding no' \
+    'AllowTcpForwarding no' 'LogLevel ERROR' > /opt/lab/sshd_config
 
 WORKDIR /opt/lab
 COPY lab/__init__.py lab/schema.py lab/labeler.py ./lab/
