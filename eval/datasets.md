@@ -8,7 +8,7 @@ nothing below may be edited to improve a metric; a changed checksum means a diff
 | Corpus | Status |
 |---|---|
 | LAB attack captures | **Not recorded** — attack scenarios are deferred (see `lab/README.md`) |
-| LAB hard negatives | **Recorded**: 6 verified runs (b01-b06), 7 of 8 classes in both splits; `AUTOMATION_SSH` has no generator and no capture |
+| LAB hard negatives | **Recorded**: 8 verified runs (b01-b06, then b07-b08 for `AUTOMATION_SSH` on 2026-11-01), all 8 classes in both splits |
 | LAB-HOLDOUT | **Not recorded** — deferred with the attack scenarios |
 | BENIGN (lab runs with hard-negative traffic only, ≥ 4 h) | **Recorded**: 4.53 h (6 runs, 3 `dev`, 3 `test`); satisfies the 4 h requirement |
 | BENIGN (CICIDS2017 Monday) | **Deferred by decision** (disk: 39 GB free at decision time; the full file is ~10 GB) |

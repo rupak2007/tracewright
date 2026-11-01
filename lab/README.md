@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **P2 partially complete.** The benign skeleton, tooling and the six-run benign corpus (4.53 h, frozen in `eval/splits.yaml`) exist. Attack scenarios, held-out families, `AUTOMATION_SSH` and their captures do **not**; `python -m eval.splits report` shows 10 of 27 requirements met. |
+| Status | **P2 partially complete.** The benign skeleton, tooling and the eight-run benign corpus (6.04 h; b01-b06 frozen, b07-b08 appended in `eval/splits.yaml`) exist. Attack scenarios, held-out families and their captures do **not**; `python -m eval.splits report` shows 11 of 27 requirements met. |
 | Implements | `docs/PRD.md` §17, `docs/architecture.md` §20.1, `docs/plan.md` P2, `eval/PROTOCOL.md` |
 | Purpose | Produce labelled captures (ground truth known by construction) to tune detectors on `dev` and measure on `test`. |
 
@@ -38,6 +38,7 @@ Labelled `hard_negative` (a detector finding on one is a false positive):
 | `package_update` | `PACKAGE_UPDATE` | bulk downloads |
 | `cdn_browsing` | `CDN_BROWSING` | high-cardinality DNS |
 | `video_streaming` | `VIDEO_STREAMING` | long, steady flows |
+| `automation_ssh` | `AUTOMATION_SSH` | bursts of short, successful, key-authenticated SSH sessions (real OpenSSH in the image; Zeek `auth_success`); the connection shape DET-BRUTE infers guessing from |
 | `background_browsing` | _unlabelled_ | ordinary DNS + page fetches (background) |
 
 ### Ground truth, checking and splits
@@ -180,10 +181,9 @@ need an entry in `eval/REVISIONS.md` and user approval.
   (`docs/PRD.md` §17, `docs/plan.md` P2). The registration/verification interface above exists, but no such
   capture has been supplied; the class names exist in `lab/schema.py` only so labels can be validated.
 * **LAB-HOLDOUT families** (`docs/PRD.md` §11/§17). Same: names registered, no capture supplied.
-* **Automation-SSH hard negative** (class registered; no scenario in the runner and no capture supplied).
 * **Attack-target hosts** (separate SSH/FTP/HTTP/file-server hosts) — not part of the benign skeleton.
 * **The rest of the corpus**: ≥ 4 dev + ≥ 4 test episodes per attack class, ≥ 8 LAB-HOLDOUT test captures,
-  `AUTOMATION_SSH`. The benign part is recorded and frozen (10 of 27 requirements met; 17 unmet).
+  The benign part is recorded (11 of 27 requirements met; 16 unmet: every attack, DNS-tunnel and held-out row).
 * **CICIDS2017** (Monday benign + attack days): deferred by decision; nothing downloaded.
 
 P2 is therefore **not complete**, and P3 must not start until the deferred items are done and the split

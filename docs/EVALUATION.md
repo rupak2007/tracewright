@@ -64,9 +64,11 @@ it sees.
 | Without allowlists | 9 | 9 (all BEACON) | 3.00 | the above plus NTP 3 |
 
 The PRD target (at most 1.0 per hour) is still **not met**, and adding a fourth `dev` run made the figure
-worse, not better. The new AUTOMATION_SSH run (b08) produced one BEACON finding and **no BRUTE finding**, so the
-SSH-burst shape did not trigger DET-BRUTE at its default thresholds; that is one observation on one run and
-says nothing about brute-force recall. Nothing was tuned. The v1 numbers above remain the record for the
+worse, not better. The new AUTOMATION_SSH run (b08) produced one BEACON finding and **no BRUTE finding**. That is by design, not
+luck: DET-BRUTE leaves out SSH connections that Zeek reports as successfully authenticated
+(`backend/app/detect/brute.py`, `_login_hits`), and every session in b08 authenticated. It says nothing about
+brute-force recall, and it means an SSH attack whose connections all succeed (or that Zeek cannot classify)
+would also be invisible to this rule. Nothing was tuned. The v1 numbers above remain the record for the
 three-run sample.
 
 ## 4. Anomaly triage (G1) and narrative (G2)

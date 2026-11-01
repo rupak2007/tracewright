@@ -90,7 +90,7 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,exec --cap-drop ALL -
   set `API_TOKEN` to require a token), no TLS.
 * The optional narrative is machine-generated and shown only if a deterministic validator accepts it;
   it remains opt-in because G2 was not run.
-* GitHub CI: failed on `v1.0-rc1` and `v1.0-rc2` (two defects, fixed), green at `df8b008`. The `v1.0-rc2` tag therefore points at a red build.
+* GitHub CI: failed on `v1.0-rc1` and `v1.0-rc2` (two defects, fixed), green on every push since (latest release candidate `v1.0-rc4`). The `v1.0-rc1` and `v1.0-rc2` tags point at red builds.
 * Packet slices contain real payload bytes. Pseudonymisation is not anonymisation.
 
 ## Documents

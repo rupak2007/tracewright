@@ -311,7 +311,7 @@ class Requirement:
 
 SOURCE_LAB = "benign lab runner"
 SOURCE_EXTERNAL = "externally supplied capture"
-SOURCE_SSH = "new benign scenario (not yet written) or external capture"
+SOURCE_SSH = "benign lab runner (scenario added 2026-11-01) or external capture"
 
 
 def requirement_source(name: str) -> str:

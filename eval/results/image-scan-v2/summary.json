@@ -1,0 +1,133 @@
+{
+  "scanner": "trivy 0.76.1",
+  "scope": "OS and language packages only (--scanners vuln), HIGH and CRITICAL",
+  "generated_at": "2026-11-01T12:13:57.555225+00:00",
+  "images": {
+    "tracewright-worker": {
+      "findings_by_severity": {
+        "CRITICAL": 6,
+        "HIGH": 123
+      },
+      "findings_with_a_fix_available": {},
+      "packages_with_findings": 37,
+      "packages_with_a_fix_available": [],
+      "packages_without_a_fix": [
+        "bsdutils",
+        "libacl1",
+        "libblkid1",
+        "libcares2",
+        "libcurl3t64-gnutls",
+        "liblastlog2-2",
+        "libmount1",
+        "libncursesw6",
+        "libnode115",
+        "libpcap0.8t64",
+        "libperl5.40",
+        "libpython3.13",
+        "libpython3.13-minimal",
+        "libpython3.13-stdlib",
+        "libsmartcols1",
+        "libsystemd0",
+        "libtiff6",
+        "libtinfo6",
+        "libudev1",
+        "libuuid1",
+        "libxml2",
+        "login",
+        "mount",
+        "ncurses-base",
+        "ncurses-bin",
+        "node-brace-expansion",
+        "node-minimatch",
+        "node-undici",
+        "nodejs",
+        "perl",
+        "perl-base",
+        "perl-modules-5.40",
+        "python3-setuptools-whl",
+        "python3.13",
+        "python3.13-minimal",
+        "python3.13-venv",
+        "util-linux"
+      ]
+    },
+    "tracewright-api": {
+      "findings_by_severity": {
+        "HIGH": 44
+      },
+      "findings_with_a_fix_available": {},
+      "packages_with_findings": 17,
+      "packages_with_a_fix_available": [],
+      "packages_without_a_fix": [
+        "bsdutils",
+        "libacl1",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libncursesw6",
+        "libsmartcols1",
+        "libsystemd0",
+        "libtinfo6",
+        "libudev1",
+        "libuuid1",
+        "login",
+        "mount",
+        "ncurses-base",
+        "ncurses-bin",
+        "perl-base",
+        "util-linux"
+      ]
+    },
+    "tracewright-web": {
+      "findings_by_severity": {},
+      "findings_with_a_fix_available": {},
+      "packages_with_findings": 0,
+      "packages_with_a_fix_available": [],
+      "packages_without_a_fix": []
+    },
+    "postgres": {
+      "findings_by_severity": {
+        "CRITICAL": 2,
+        "HIGH": 86
+      },
+      "findings_with_a_fix_available": {
+        "CRITICAL": 1,
+        "HIGH": 25
+      },
+      "packages_with_findings": 29,
+      "packages_with_a_fix_available": [
+        "stdlib"
+      ],
+      "packages_without_a_fix": [
+        "bsdutils",
+        "dirmngr",
+        "gnupg",
+        "gnupg-l10n",
+        "gpg",
+        "gpg-agent",
+        "gpgconf",
+        "gpgsm",
+        "libacl1",
+        "libblkid1",
+        "liblastlog2-2",
+        "libmount1",
+        "libncursesw6",
+        "libperl5.40",
+        "libsmartcols1",
+        "libsystemd0",
+        "libtinfo6",
+        "libudev1",
+        "libuuid1",
+        "libxml2",
+        "login",
+        "mount",
+        "ncurses-base",
+        "ncurses-bin",
+        "perl",
+        "perl-base",
+        "perl-modules-5.40",
+        "util-linux"
+      ]
+    }
+  }
+}
