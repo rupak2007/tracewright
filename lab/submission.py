@@ -8,6 +8,8 @@ checked against the capture itself by `lab/verify_run.py`. Standard library only
 submission.json
 {
   "run_id": "x001",
+  "campaign_id": "camp-07",                # one id per independent campaign; runs that share an
+                                          # id are one campaign and are kept in ONE split
   "holdout": false,                       # true only for LAB-HOLDOUT runs
   "start": "2026-11-02T10:00:00.000Z",    # window the supplier says the capture covers
   "end":   "2026-11-02T10:30:00.000Z",
@@ -19,6 +21,7 @@ submission.json
 """
 
 import ipaddress
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -28,6 +31,7 @@ from lab.schema import CLASSES_BY_KIND, Episode, parse_time
 
 _REQUIRED = (
     "run_id",
+    "campaign_id",
     "holdout",
     "start",
     "end",
@@ -63,6 +67,7 @@ class DeclaredScenario:
 @dataclass(frozen=True)
 class Submission:
     run_id: str
+    campaign_id: str
     holdout: bool
     start: str
     end: str
@@ -89,6 +94,7 @@ def parse_submission(raw: object) -> Submission:
     if unknown:
         raise ValueError(f"unknown fields: {sorted(unknown)}")
     run_id = valid_run_id(raw["run_id"])
+    campaign_id = valid_run_id(raw["campaign_id"])  # same character rules as a run id
     if not isinstance(raw["holdout"], bool):
         raise ValueError("holdout must be true or false")
     start, end = parse_time(raw["start"]), parse_time(raw["end"])
@@ -146,6 +152,7 @@ def parse_submission(raw: object) -> Submission:
 
     return Submission(
         run_id=run_id,
+        campaign_id=campaign_id,
         holdout=raw["holdout"],
         start=raw["start"],
         end=raw["end"],
@@ -173,11 +180,60 @@ def check_labels_match_submission(submission: Submission, episodes: list[Episode
             problems.append(f"{e.episode_id}: actor {e.actor} is not a declared client")
         if e.start < start or e.end > end:
             problems.append(f"{e.episode_id}: outside the declared start/end window")
+    problems += check_subpopulation_params(episodes)
     declared = submission.declared_pairs()
     for kind, cls in sorted(declared - seen_pairs):
         problems.append(f"declared scenario {kind}:{cls} has no labelled episode")
     for kind, cls in sorted(seen_pairs - declared):
         problems.append(f"labelled episode {kind}:{cls} was not declared in the submission")
+    return problems
+
+
+BRUTE_SERVICES = ("ftp", "http", "https", "ssh", "rdp", "telnet")
+SCAN_SPEEDS = ("default", "slow")
+
+
+def check_subpopulation_params(episodes: list[Episode]) -> list[str]:
+    """PRD §18 reports BRUTE (FTP/HTTP vs SSH) and SCAN (default vs slow) separately, so externally
+    supplied attack episodes of those classes must say which one they are, in `params`."""
+    problems: list[str] = []
+    for e in episodes:
+        if e.kind != "attack":
+            continue
+        if e.cls == "BRUTE" and str(e.params.get("service", "")).lower() not in BRUTE_SERVICES:
+            problems.append(
+                f"{e.episode_id}: BRUTE needs params.service in {list(BRUTE_SERVICES)} "
+                "(FTP/HTTP and SSH are reported separately)"
+            )
+        if e.cls == "SCAN" and str(e.params.get("speed", "")).lower() not in SCAN_SPEEDS:
+            problems.append(
+                f"{e.episode_id}: SCAN needs params.speed in {list(SCAN_SPEEDS)} "
+                "(slow scans are reported separately)"
+            )
+    return problems
+
+
+def check_network_roles(episodes: list[Episode], classify: Callable[[str], str]) -> list[str]:
+    """Reject episodes whose addresses the run's `network_config` classifies so that the targeted
+    detector could never see them (found in P3: a dual-homed lab client talking to the external
+    subnet from its external address is external-to-external, so EXFIL/BEACON/DNSTUN cannot fire).
+
+    * DNSTUN, BEACON, EXFIL: the actor (the affected host) must be internal;
+    * EXFIL: at least one target must be external (DET-EXFIL looks at internal-to-external bytes).
+    `classify` maps an address to "internal" / "external" (`NetworkContext.classify`)."""
+    problems: list[str] = []
+    for e in episodes:
+        if e.kind != "attack" or e.cls not in ("DNSTUN", "BEACON", "EXFIL"):
+            continue
+        if classify(e.actor) != "internal":
+            problems.append(
+                f"{e.episode_id}: {e.cls} actor {e.actor} is not internal under the run's "
+                "network_config (the affected host must be an internal address)"
+            )
+        if e.cls == "EXFIL" and not any(classify(t) == "external" for t in e.targets):
+            problems.append(
+                f"{e.episode_id}: EXFIL needs an external target under the run's network_config"
+            )
     return problems
 
 

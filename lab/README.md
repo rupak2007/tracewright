@@ -90,6 +90,7 @@ capture is **not** accepted: the SHA-256 is computed by the registration tool.
 | Field | Meaning |
 |---|---|
 | `run_id` | the run's identity; must equal every label's `run_id` |
+| `campaign_id` | **required.** One id per independent campaign (letters, digits, `-`, `_`). Runs that share an id are ONE campaign: `eval.splits assign` keeps them in the same split and `validate` fails if they are not. Give two runs different ids only if they are genuinely independent executions (`docs/CAPTURE_ACQUISITION_PLAN.md` E3) |
 | `holdout` | `true` only for a LAB-HOLDOUT run (then only `kind: "holdout"` scenarios are allowed) |
 | `start`, `end` | ISO-8601 UTC (`...Z`): the window the capture covers; every episode must fall inside it |
 | `network_config` | file name in `config/` classifying internal/external (e.g. `network.lab.yaml`) |
@@ -106,6 +107,27 @@ capture is **not** accepted: the SHA-256 is computed by the registration tool.
 Valid `kind`/`class` pairs are exactly those in `lab/schema.py` (`attack`, `holdout`, `hard_negative`).
 A template with placeholder values is in the `lab/submission.py` module docstring.
 
+### Label parameters that the evaluation needs (checked at registration)
+
+PRD section 18 reports some classes per sub-population, so attack episodes must say which one they are:
+
+| Class | Required `params` | Values |
+|---|---|---|
+| `BRUTE` | `service` | `ftp`, `http`, `https` (reported as FTP/HTTP) or `ssh`, `rdp`, `telnet` (reported as SSH/RDP/Telnet) |
+| `SCAN` | `speed` | `default` or `slow` (the slow-scan rule is the 10-minute window) |
+
+An episode missing these is rejected. `python -m eval.splits report` also prints, informationally and outside
+the 27 requirements, how many episodes of each sub-population each split holds.
+
+### Network roles (checked at registration)
+
+Under the run's `network_config`, the actor of a `DNSTUN`, `BEACON` or `EXFIL` episode must be an **internal**
+address, and an `EXFIL` episode needs at least one **external** target. A dual-homed client that reaches the
+external subnet from its external address is external-to-external and could never raise these findings (found
+in P3), so such a submission is rejected instead of silently producing a capture no detector can see. The
+supplier needs an address plan in which internal hosts reach external destinations from their internal
+address (for example through a routing hop).
+
 ### Commands (from the repository root, backend environment)
 
 ```bash
@@ -116,6 +138,8 @@ python -m lab.register_external <submission_dir>
 #    capture bytes are parsed); use the network config named in the submission.
 docker compose run --rm -v "$PWD/data/lab/<run_id>:/in:ro" -v "$PWD/<analysis_out>:/out" \
   worker python -m app.cli analyze /in/capture.pcap --out /out/<run_id> --config-dir <config_dir>
+#    A capture above 500 MiB: add `--max-bytes <n>` (offline evaluation run only; the API upload cap is
+#    unchanged). 500 MB analysed in about a minute with a 3 GB container (eval/results/bench-v1/).
 
 # 3. Verify the labels against that analysis. Writes lab/runs/<run_id>/verification.json.
 python -m lab.verify_run <run_id> <analysis_out>/<run_id>

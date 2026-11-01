@@ -29,12 +29,14 @@ from pathlib import Path
 
 from app.core.errors import IngestError
 from app.ingest.validate import validate_file
+from app.profile.context import load_network_context
 from lab.labeler import read_labels
 from lab.runmeta import RunMeta, load_run
 from lab.schema import parse_time
 from lab.submission import (
     Submission,
     check_labels_match_submission,
+    check_network_roles,
     check_run_flags,
     parse_submission,
 )
@@ -83,6 +85,9 @@ def register(
         problems.append(f"network_config {submission.network_config!r} not found in config/")
     benign_only = all(e.kind == "hard_negative" for e in episodes)
     problems += check_run_flags(submission.holdout, benign_only, list(episodes))
+    network_file = config_dir / submission.network_config
+    if network_file.is_file():
+        problems += check_network_roles(list(episodes), load_network_context(network_file).classify)
 
     captures = [source / name for name in CAPTURE_NAMES if (source / name).is_file()]
     if len(captures) != 1:
@@ -124,6 +129,7 @@ def register(
         ),
         network_config=submission.network_config,
         origin="external",
+        campaign_id=submission.campaign_id,
         clients=submission.clients,
         provenance={
             "supplied_by": submission.provenance.supplied_by,

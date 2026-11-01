@@ -27,6 +27,7 @@ def empty_pcap_bytes(variant: int = 0) -> bytes:
 def valid_submission(run_id: str = "x001", **overrides: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
         "run_id": run_id,
+        "campaign_id": f"camp-{run_id}",
         "holdout": False,
         "start": "2026-11-02T10:00:00.000Z",
         "end": "2026-11-02T10:10:00.000Z",
@@ -48,6 +49,15 @@ def valid_submission(run_id: str = "x001", **overrides: Any) -> dict[str, Any]:
     return base
 
 
+def _params_for(kind: str, cls: str) -> dict[str, Any]:
+    """The sub-population labels PRD section 18 needs (service for BRUTE, speed for SCAN)."""
+    if kind == "attack" and cls == "BRUTE":
+        return {"service": "ftp"}
+    if kind == "attack" and cls == "SCAN":
+        return {"speed": "default"}
+    return {}
+
+
 def episode_dict(
     run_id: str = "x001",
     kind: str = "attack",
@@ -65,6 +75,7 @@ def episode_dict(
         T0 + timedelta(seconds=60),
         T0 + timedelta(seconds=120),
         "synthetic",
+        params=_params_for(kind, cls),
     )
     return e.to_json_dict()
 

@@ -186,6 +186,7 @@ def _meta(**overrides: Any) -> RunMeta:
         "origin": "external",
         "clients": ({"id": "c1", "ip": "172.20.0.101"},),
         "provenance": valid_submission()["provenance"],
+        "campaign_id": "camp-1",
     }
     base.update(overrides)
     return RunMeta(**base)
@@ -202,7 +203,74 @@ def test_run_meta_origin_rules() -> None:
     with pytest.raises(ValueError, match="only valid for external"):
         _meta(origin="lab_runner", seed=1)
     with pytest.raises(ValueError, match="must record its seed"):
-        _meta(origin="lab_runner", provenance=None, clients=(), seed=None)
+        _meta(origin="lab_runner", provenance=None, clients=(), seed=None, campaign_id=None)
     with pytest.raises(ValueError, match="'id' and 'ip'"):
         _meta(clients=({"id": "c1"},))
-    assert _meta(origin="lab_runner", provenance=None, clients=(), seed=3).seed == 3
+    assert (
+        _meta(origin="lab_runner", provenance=None, clients=(), seed=3, campaign_id=None).seed == 3
+    )
+
+
+def test_brute_and_scan_episodes_must_declare_their_subpopulation() -> None:
+    """PRD section 18 reports FTP/HTTP vs SSH BRUTE and default vs slow SCAN separately."""
+    from lab.submission import check_subpopulation_params
+
+    def ep(cls: str, params: dict[str, object]) -> Any:
+        raw = episode_dict(cls=cls)
+        raw["params"] = params
+        return parse_episode(raw)
+
+    assert (
+        check_subpopulation_params([ep("BRUTE", {"service": "ssh"}), ep("SCAN", {"speed": "slow"})])
+        == []
+    )
+    problems = check_subpopulation_params(
+        [
+            ep("BRUTE", {}),
+            ep("BRUTE", {"service": "gopher"}),
+            ep("SCAN", {"speed": "fast"}),
+            ep("SCAN", {}),
+        ]
+    )
+    assert len(problems) == 4 and all("reported separately" in p for p in problems)
+    assert (
+        check_subpopulation_params([ep("BEACON", {}), ep("DNSTUN", {})]) == []
+    )  # no sub-populations
+
+
+def test_external_runs_need_a_campaign_id_and_lab_runs_must_not_have_one() -> None:
+    with pytest.raises(ValueError, match="campaign_id"):
+        _meta(campaign_id=None)
+    with pytest.raises(ValueError, match="campaign_id is only valid for external"):
+        _meta(origin="lab_runner", provenance=None, clients=(), seed=3, campaign_id="c")
+    raw = valid_submission()
+    del raw["campaign_id"]
+    with pytest.raises(ValueError, match="missing fields"):
+        parse_submission(raw)
+    for bad in ("", "a b", "../x", 7):
+        with pytest.raises(ValueError, match="invalid run_id"):
+            parse_submission({**valid_submission(), "campaign_id": bad})
+
+
+def test_network_roles_reject_episodes_a_detector_could_never_see() -> None:
+    """Regression for the P3 topology limit: dual-homed clients talk external-to-external."""
+    from lab.submission import check_network_roles
+
+    def ep(cls: str, actor: str, target: str) -> Any:
+        raw = episode_dict(cls=cls, actor=actor)
+        raw["targets"] = [target]
+        return parse_episode(raw)
+
+    def classify(address: str) -> str:
+        return "internal" if address.startswith("172.20.") else "external"
+
+    ok = [ep("EXFIL", "172.20.0.101", "172.21.0.20"), ep("BEACON", "172.20.0.101", "172.21.0.20")]
+    assert check_network_roles(ok, classify) == []
+    bad = [
+        ep("EXFIL", "172.21.0.101", "172.21.0.20"),  # the dual-homed case
+        ep("EXFIL", "172.20.0.101", "172.20.0.20"),  # internal-to-internal transfer
+        ep("DNSTUN", "172.21.0.101", "172.20.0.20"),
+    ]
+    problems = check_network_roles(bad, classify)
+    assert len(problems) == 3 and sum("EXFIL needs an external target" in p for p in problems) == 1
+    assert check_network_roles([ep("SCAN", "172.21.0.101", "172.20.0.20")], classify) == []

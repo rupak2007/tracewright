@@ -87,6 +87,7 @@ class RunMeta:
     origin: str = "lab_runner"
     clients: tuple[dict[str, str], ...] = ()  # [{"id": ..., "ip": ...}] who generated traffic
     provenance: dict[str, Any] | None = None
+    campaign_id: str | None = None  # external runs: runs sharing it are ONE campaign (one split)
 
     def __post_init__(self) -> None:
         if self.schema_version != RUN_SCHEMA_VERSION:
@@ -110,11 +111,15 @@ class RunMeta:
             Provenance.from_dict(self.provenance)  # raises on missing/invalid provenance
             if not self.clients:
                 raise ValueError("an external run must identify its clients")
+            if not self.campaign_id:
+                raise ValueError("an external run must carry a campaign_id")
         else:
             if self.provenance is not None:
                 raise ValueError("provenance is only valid for external runs")
             if self.seed is None:
                 raise ValueError("a lab_runner run must record its seed")
+            if self.campaign_id is not None:
+                raise ValueError("campaign_id is only valid for external runs")
         for client in self.clients:
             if set(client) != {"id", "ip"} or not all(client.values()):
                 raise ValueError("each client needs exactly a non-empty 'id' and 'ip'")
